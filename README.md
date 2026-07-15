@@ -72,9 +72,18 @@ The first four carry the weight. The rest round out the trade.
 
 ## Status
 
-**One of ten is live: 01, the power chain one line explorer.** It passed the gate, so it shipped.
+<!-- BEGIN GENERATED: status. Do not hand edit. Regenerate: ./tools/build_readme.py -->
+
+**One of the ten tools is live**, meaning it has passed the gate above and is running where you can click it:
+
+- **01. Power chain one line explorer**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)
+
+<!-- END GENERATED: status -->
+
 The other nine are folders and a plan. Each project's `PROGRESS.log` is the source of truth for where
-it actually stands; this table is not, and neither is this paragraph.
+it stands, and the block above is generated from those files rather than typed by hand. That is not
+fussiness: this section previously said "no tool is live yet" for a while after 01 went live, because
+a status typed into prose is a copy, and a copy rots. `./tools/gate.sh` fails if it drifts again.
 
 Building in order: 01, then 02, 03, 04. The next one does not start until the current one verifies.
 
@@ -90,12 +99,34 @@ A green test suite proves nothing until you have watched it go red.
 ## Layout
 
     projects/<nn>-<slug>/
-      README.md      what it is and the build log
-      PROGRESS.log   source of truth for status
-      sources/       authoritative references, cited
-      verify/        the published worked example it must reproduce
-      build/         the app
-    reference/       glossary and one pagers, written longhand
+      README.md        what it is and the build log
+      PROGRESS.log     source of truth for status
+      sources/         authoritative references, each with a stated verification level
+      verify/          the published worked example it must reproduce
+        verify.js      the assertions, each quoting the source paper
+        mutants.txt    ways to break the code that the suite MUST notice
+      build/           the app
+    reference/         glossary and one pagers, written longhand
+    tools/
+      gate.sh          runs all four checks below. This is the rule, as a command
+      mutate.sh        breaks the code on purpose to prove the suite can fail
+      check_sources.py fails on any citation with no stated verification level
+      build_readme.py  generates the status block above from the PROGRESS.log files
+
+## Checking it yourself
+
+    ./tools/gate.sh
+
+Four checks, and each one exists because it already failed once here:
+
+| Check | Because |
+|---|---|
+| every `verify` suite passes | the repo's one rule |
+| every suite can actually **fail** | a green suite proves nothing until you have watched it go red |
+| every citation states how far it was verified | this repo's whole claim is "I checked" |
+| the status block matches the `PROGRESS.log` files | it said "no tool is live yet" after 01 was live |
+
+Nonzero exit on any failure, so it gates rather than advises.
 
 ## License
 

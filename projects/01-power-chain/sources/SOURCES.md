@@ -6,6 +6,36 @@ are free to download. Where a source is free, the link goes to the publisher so 
 Each entry says how far I actually verified it, because "I read the abstract" and "I traced the figure"
 are different claims and the difference is the whole point of this repo.
 
+## Source audit
+
+Every citation in this file, and how far it was actually taken. Checked by `tools/check_sources.py`,
+which fails if any URL below appears in the prose without a level here. The levels, strongest first:
+**TRACED** (read, and figures traced out) · **READ IN FULL** · **FETCHED, NOT READ** ·
+**LOCATED ONLY** (URL resolves, content unverified) · **CITED, UNREAD** (named by number, never
+opened) · **GATED, UNREAD** (paywalled, no content used).
+
+| Source | Level | URL |
+|---|---|---|
+| Schneider WP75 Rev 4, Comparing UPS System Design Configurations | TRACED | https://download.schneider-electric.com/files?p_Doc_Ref=SPD_SADE-5TPL8X_EN |
+| Uptime Institute, Tier classification (public page) | READ IN FULL | https://uptimeinstitute.com/tiers |
+| Uptime Institute Journal, Explaining the Tier Classification System | READ IN FULL | https://journal.uptimeinstitute.com/explaining-uptime-institutes-tier-classification-system/ |
+| Schneider EcoStruxure Reference Design 111 (Tier III, ANSI, GB300) | FETCHED, NOT READ | https://download.schneider-electric.com/files?p_Doc_Ref=RD111DSR0&p_File_Name=RD111DSR3-GB300.pdf&p_enDocType=Other+technical+guide |
+| Schneider EcoStruxure Reference Design 108 (Tier III, IEC, GB200) | FETCHED, NOT READ | https://download.schneider-electric.com/files?p_Doc_Ref=RD108DSR0&p_File_Name=RD108DSR7-GB200.pdf&p_enDocType=Other+technical+guide |
+| Open Compute Project, Data Center Facility | LOCATED ONLY | https://www.opencompute.org/projects/data-center-facility |
+| DOE FEMP, Best Practices Guide for Energy-Efficient Data Center Design | LOCATED ONLY | https://www.energy.gov/sites/default/files/2024-07/best-practice-guide-data-center-design_0.pdf |
+| Uptime Institute, Tier Standard: Topology (the actual standard) | GATED, UNREAD | none |
+| ANSI/TIA-942 | CITED, UNREAD | none |
+| IEEE Std 493 (Gold Book) | CITED, UNREAD | none |
+| IEEE C37.20.2, metal clad switchgear | CITED, UNREAD | none |
+| IEEE C37.10.1, circuit breaker failure modes | CITED, UNREAD | none |
+| Schneider White Paper 48, rack power redundancy | CITED, UNREAD | none |
+| NFPA 70E | CITED, UNREAD | none |
+| NETA acceptance testing specification | CITED, UNREAD | none |
+
+Read that table before the prose. **Only the top row was traced**, and it is the only one the verify
+phase rests on. Everything below it is weaker, and the two reference designs in particular are
+skimmed, not read, so nothing in this project should depend on their detail yet.
+
 ---
 
 ## Primary, and the one this project verifies against
