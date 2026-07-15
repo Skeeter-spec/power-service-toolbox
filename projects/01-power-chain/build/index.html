@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power chain one line explorer</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #fff; --ink: #14181f; --muted: #5c6673; --line: #d7dce3;
+    --live: #1a6fd4; --dead: #b9c0c9; --hot: #c0392b; --warn: #b3690f; --good: #17794a;
+    --accent: #0f2f5e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1a1f27; --ink: #e8ecf1; --muted: #98a3b3; --line: #2c343f;
+      --live: #4a9eff; --dead: #3a424e; --hot: #ff6b5b; --warn: #e0a03c; --good: #3ecf8e;
+      --accent: #9dc4ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .banner {
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 18px; font-size: 13.5px; color: var(--ink);
+  }
+  .banner strong { color: var(--warn); }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+  }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  button.topo {
+    font: inherit; font-size: 13px; padding: 7px 11px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button.topo[aria-pressed="true"] { background: var(--live); border-color: var(--live); color: #fff; }
+  .figsrc { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  .nodebox { cursor: pointer; }
+  .nodebox rect { transition: opacity .12s; }
+  .nodelabel { font-size: 9px; font-weight: 600; pointer-events: none; }
+  .edge { fill: none; stroke: var(--live); stroke-width: 1.6; }
+  .edge.alt { stroke-dasharray: 4 3; }
+  .edge.deadedge { stroke: var(--dead); }
+  h2 { font-size: 14px; margin: 0 0 8px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  .verdict { font-size: 14px; padding: 9px 11px; border-radius: 7px; margin-bottom: 10px; }
+  .v-ok   { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); }
+  .v-bad  { background: color-mix(in srgb, var(--hot) 14%, transparent);  color: var(--hot); }
+  ul { margin: 6px 0 0; padding-left: 18px; }
+  li { margin-bottom: 3px; font-size: 13.5px; }
+  .k { color: var(--muted); font-size: 12.5px; }
+  .pill {
+    display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 20px;
+    border: 1px solid var(--line); color: var(--muted); margin-left: 6px; vertical-align: 1px;
+  }
+  .info h3 { margin: 0 0 2px; font-size: 16px; }
+  .info p { margin: 8px 0; font-size: 13.5px; }
+  .cite { font-size: 12px; color: var(--muted); font-style: italic; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .sw { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+  footer { margin-top: 26px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--accent); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Power chain one line explorer</h1>
+  <p class="sub">
+    Five published UPS configurations. Click any component to take it out of service and watch what
+    goes dark.
+  </p>
+
+  <div class="banner">
+    <strong>Educational. Not for field use.</strong>
+    This reproduces worked examples from a published white paper so they can be poked at. It is not
+    an engineered study, it is not a substitute for the manufacturer's instructions or a qualified
+    person on site, and <strong>it does not tell you your tier</strong>. It cannot: a tier is awarded
+    by the Uptime Institute against a standard this project has not read, and it turns on things a
+    one line diagram does not show. What this does compute is narrower and checkable: which single
+    components, if taken out, drop a load.
+  </div>
+
+  <div class="toolbar" id="toolbar"></div>
+  <p class="figsrc" id="figsrc"></p>
+
+  <div class="cols">
+    <div class="card">
+      <div id="diagram"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--live)"></i> energized</span>
+        <span><i class="sw" style="background:var(--dead)"></i> de energized</span>
+        <span><i class="sw" style="background:var(--live);height:0;border-top:2px dashed var(--live)"></i> alternate or normally open</span>
+        <span><i class="sw" style="background:var(--hot)"></i> out of service</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Verdict</h2>
+        <div id="verdict"></div>
+      </div>
+      <div class="card info" id="info"></div>
+    </div>
+  </div>
+
+  <footer>
+    Topologies traced from <strong>Schneider Electric White Paper 75 Rev 4</strong>, "Comparing UPS
+    System Design Configurations," McCarthy and Avelar. Free from the publisher:
+    <a href="https://download.schneider-electric.com/files?p_Doc_Ref=SPD_SADE-5TPL8X_EN">download it here</a>.
+    The paper is cited, never copied. Full sourcing, including what is gated and what was left out,
+    is in <code>sources/SOURCES.md</code>. The engine is checked against that paper's own stated
+    conclusions by <code>verify/verify.js</code>.
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="topologies.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* What each component does, and how it bites you. Kept deliberately short.
+   * Where a claim is in WP75 it is cited. Where it is trade knowledge rather than something I can
+   * point at a page for, it says so instead of dressing itself up with a fake citation. */
+  var INFO = {
+    utility: {
+      title: 'Utility service',
+      does: 'Where the power company\'s responsibility ends and the owner\'s begins.',
+      fails: 'It goes away, and not always politely. Voltage sags and short interruptions are far ' +
+             'more common than a clean total loss, which is the case people design for.',
+      cite: null
+    },
+    generator: {
+      title: 'Generator',
+      does: 'The on site source the ATS turns to when the utility drops.',
+      fails: 'The failure people forget is that it has to start, take load, and hold it, and the ' +
+             'only way to know it will is to run it under load on a schedule. WP75\'s own model ' +
+             'budgets around 190 seconds for the generator to start and be ready to accept load. ' +
+             'The UPS battery exists to cover that gap.',
+      cite: 'WP75 p.25 uses a generator start time of 190 seconds in its availability model.'
+    },
+    ats: {
+      title: 'Automatic transfer switch',
+      does: 'Moves the load between two sources, normally utility and generator, with nobody present.',
+      fails: 'It is a single device in series with everything downstream of it, so unless there is ' +
+             'a second path around it, it is a single point of failure no matter how good it is. ' +
+             'Project 03 takes the transfer sequence apart properly.',
+      cite: null
+    },
+    bus: {
+      title: 'Bus',
+      does: 'The common connection point. Everything on it is on it.',
+      fails: 'This is the one people skip when they count redundancy. Two UPS modules feeding one ' +
+             'bus are redundant modules on a non redundant bus. WP75 says it flatly about the ' +
+             'parallel redundant design: the paralleling bus is still a single point of failure.',
+      cite: 'WP75 p.9: "there still remains a single point of failure in the paralleling bus."'
+    },
+    ups: {
+      title: 'UPS',
+      does: 'Carries the load through the gap between the utility going away and the generator ' +
+            'taking over, and conditions the power in the meantime.',
+      fails: 'Two different bypasses, and mixing them up is a classic. The STATIC bypass is ' +
+             'internal and automatic: the module throws the load to raw utility by itself if it ' +
+             'faults or is overloaded past its rating. The MAINTENANCE bypass is external and ' +
+             'manual: it lets you pull the whole module out and work on it with the load still up, ' +
+             'and it is normally open. Both keep the lights on. Neither keeps the load protected.',
+      cite: 'WP75 p.5 on both. A module may carry 125% of rated load for 10 minutes before it ' +
+            'transfers itself to static bypass.'
+    },
+    bypass: {
+      title: 'Maintenance bypass',
+      does: 'A normally open path around the UPS so the module can be worked on without dropping ' +
+            'the load.',
+      fails: 'It does not fail so much as it costs you something. The moment it is closed the load ' +
+             'is sitting on raw utility with nothing between it and the next sag. That is why ' +
+             'WP75 defines concurrent maintenance as being able to shut a component down WITHOUT ' +
+             'transferring the load to utility. Keeping the lights on is the low bar.',
+      cite: 'WP75 p.3 for the definition, p.5 for what the bypass is for.'
+    },
+    sts: {
+      title: 'Static transfer switch',
+      does: 'Two inputs, one output. Holds the load on one UPS source and jumps to the other in ' +
+            'about 4 to 8 milliseconds, fast enough that the load never notices.',
+      fails: 'It is what lets a single corded load have two upstream sources, which is genuinely ' +
+             'useful. But it is itself one more series device with its own failure modes, and ' +
+             'WP75 makes the sharp point that putting an STS across two paths means those two ' +
+             'paths are no longer isolated from each other, which was the reason for having two.',
+      cite: 'WP75 p.13 for the transfer time and the isolation problem.'
+    },
+    pdu: {
+      title: 'PDU',
+      does: 'Transformer plus panelboard on the floor, stepping distribution voltage down for racks.',
+      fails: 'WP75 models it as its sub parts in series: a main breaker, a branch breaker, a step ' +
+             'down transformer, and the terminations. Series means the PDU is only as good as the ' +
+             'worst of them, and for a single corded load hanging off it, it is the end of the line.',
+      cite: 'WP75 p.24 decomposes the PDU exactly that way in its availability model.'
+    },
+    rack_ats: {
+      title: 'Rack transfer switch',
+      does: 'The same idea as an STS, moved down next to the rack, so a single corded box can still ' +
+            'see two sources.',
+      fails: 'It brings redundancy closer to the load, which is real. It does not remove the last ' +
+             'single point, it just moves it into the rack. WP75 is blunt that a tier IV ' +
+             'architecture requires every load to be dual corded, full stop.',
+      cite: 'WP75 p.16: "tier IV power architectures require that all loads are dual-corded."'
+    },
+    tie: {
+      title: 'Bus tie',
+      does: 'A normally open breaker between two buses, so one side can feed the other.',
+      fails: 'Closing it ties two systems that were independent a moment ago, which is exactly what ' +
+             'you wanted and also exactly the risk. In the system plus system design it is what ' +
+             'lets a whole service entrance come down without taking that side\'s UPS with it.',
+      cite: 'WP75 p.16 on the tie between the UPS input panelboards.'
+    },
+    load: {
+      title: 'Critical load',
+      does: 'The actual computers. The only reason any of the rest of this exists.',
+      fails: 'The question that decides most of these designs is not what the load is, it is how ' +
+             'many cords it has. A dual corded load on two paths can ride out anything upstream. ' +
+             'A single corded load is hostage to whatever it hangs on, and no amount of redundancy ' +
+             'above it changes that.',
+      cite: 'WP75 p.12 on single corded against dual corded distribution.'
+    }
+  };
+
+  var W = 96, H = 24;
+  var state = { topo: PowerChainTopologies.all[0], out: null, selected: null };
+
+  var byId = function (t, id) {
+    return t.nodes.filter(function (n) { return n.id === id; })[0];
+  };
+
+  function render() {
+    var t = state.topo;
+    document.getElementById('figsrc').textContent = 'Traced from ' + t.source;
+
+    var xs = t.nodes.map(function (n) { return n.x; });
+    var ys = t.nodes.map(function (n) { return n.y; });
+    var minX = Math.min.apply(null, xs) - W / 2 - 16;
+    var maxX = Math.max.apply(null, xs) + W / 2 + 16;
+    var minY = Math.min.apply(null, ys) - H - 10;
+    var maxY = Math.max.apply(null, ys) + H + 10;
+
+    var live = PowerChain.energized(t, { removed: state.out ? [state.out] : [] });
+
+    var svg = ['<svg viewBox="' + minX + ' ' + minY + ' ' + (maxX - minX) + ' ' + (maxY - minY) +
+               '" role="img" aria-label="One line diagram of ' + esc(t.name) + '">'];
+
+    t.edges.forEach(function (e) {
+      var a = byId(t, e.from), b = byId(t, e.to);
+      var y1 = a.y + H / 2, y2 = b.y - H / 2, mid = (y1 + y2) / 2;
+      var d = 'M' + a.x + ' ' + y1 + ' L' + a.x + ' ' + mid + ' L' + b.x + ' ' + mid + ' L' + b.x + ' ' + y2;
+      var dead = !(live[e.from] && live[e.to]);
+      svg.push('<path class="edge' + (e.alternate ? ' alt' : '') + (dead ? ' deadedge' : '') +
+               '" d="' + d + '"/>');
+    });
+
+    t.nodes.forEach(function (n) {
+      var isOut = state.out === n.id;
+      var lit = !!live[n.id];
+      var fill = isOut ? 'var(--hot)' : (lit ? colorFor(n.type) : 'var(--dead)');
+      var w = n.type === 'bus' ? W + 24 : W;
+      svg.push(
+        '<g class="nodebox" data-id="' + n.id + '" tabindex="0" role="button" ' +
+        'aria-label="' + esc(n.label) + '">' +
+        '<rect x="' + (n.x - w / 2) + '" y="' + (n.y - H / 2) + '" width="' + w + '" height="' + H +
+        '" rx="4" fill="' + fill + '" stroke="' +
+        (state.selected === n.id ? 'var(--ink)' : 'transparent') + '" stroke-width="1.5"/>' +
+        '<text class="nodelabel" x="' + n.x + '" y="' + (n.y + 3.2) +
+        '" text-anchor="middle" fill="#fff">' + esc(n.label) + '</text></g>');
+    });
+
+    svg.push('</svg>');
+    document.getElementById('diagram').innerHTML = svg.join('');
+
+    Array.prototype.forEach.call(document.querySelectorAll('.nodebox'), function (g) {
+      g.addEventListener('click', function () { pick(g.getAttribute('data-id')); });
+      g.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(g.getAttribute('data-id')); }
+      });
+    });
+
+    renderVerdict();
+    renderInfo();
+  }
+
+  function colorFor(type) {
+    if (type === 'load') return '#2f80c4';
+    if (type === 'bus') return '#2c3742';
+    if (type === 'bypass' || type === 'tie') return '#6b7684';
+    return 'var(--live)';
+  }
+
+  function pick(id) {
+    var n = byId(state.topo, id);
+    state.selected = id;
+    // Clicking a component takes it out of service. Clicking it again puts it back.
+    // Loads are what we are protecting, so they are not something you take out.
+    if (n.type !== 'load') state.out = (state.out === id) ? null : id;
+    render();
+  }
+
+  function renderVerdict() {
+    var t = state.topo;
+    var a = PowerChain.analyze(t);
+    var cm = a.maintenance.concurrentlyMaintainable;
+    var el = document.getElementById('verdict');
+
+    var singles = PowerChain.loadsOf(t).filter(function (l) {
+      return PowerChain.cordCount(t, l.id) === 1;
+    });
+
+    var h = '<div class="verdict ' + (cm ? 'v-ok' : 'v-bad') + '">' +
+      (cm
+        ? 'Concurrently maintainable. Every component can come out with every load still up and still on protected power.'
+        : 'Not concurrently maintainable. At least one component cannot come out cleanly.') +
+      '</div>';
+
+    if (a.maintenance.dropSpofs.length) {
+      h += '<p class="k">Taking any ONE of these out drops a load:</p><ul>' +
+        a.maintenance.dropSpofs.map(function (id) {
+          return '<li>' + esc(byId(t, id).label) + '</li>';
+        }).join('') + '</ul>';
+    }
+    if (a.maintenance.forcesBypass.length) {
+      h += '<p class="k" style="margin-top:8px">Taking any ONE of these out keeps the load lit, but ' +
+        'only by throwing it onto raw utility:</p><ul>' +
+        a.maintenance.forcesBypass.map(function (id) {
+          return '<li>' + esc(byId(t, id).label) + '</li>';
+        }).join('') + '</ul>';
+    }
+    if (!a.maintenance.dropSpofs.length && !a.maintenance.forcesBypass.length) {
+      h += '<p class="k">No single component drops a load, and none forces one onto bypass.</p>';
+    }
+    if (singles.length) {
+      h += '<p class="k" style="margin-top:10px"><strong>' + singles.length + ' single corded load' +
+        (singles.length > 1 ? 's' : '') + '</strong> here (' +
+        singles.map(function (l) { return esc(l.label.split(' ')[1]); }).join(', ') +
+        '). That is usually the whole story: everything upstream can be perfect and a load with one ' +
+        'cord still hangs on whatever it is plugged into.</p>';
+    }
+    el.innerHTML = h;
+  }
+
+  function renderInfo() {
+    var el = document.getElementById('info');
+    if (!state.selected) {
+      el.innerHTML = '<h2>Component</h2><p class="k">Click any component. It comes out of service ' +
+        'and the diagram shows you what went with it. Click it again to put it back.</p>';
+      return;
+    }
+    var t = state.topo, n = byId(t, state.selected), meta = INFO[n.type] || {};
+    var h = '<h2>Component</h2><h3>' + esc(n.label) +
+      '<span class="pill">' + esc(meta.title || n.type) + '</span></h3>';
+
+    if (n.type === 'load') {
+      var cords = PowerChain.cordCount(t, n.id);
+      var spofs = PowerChain.analyze(t).perLoad[n.id].maintenanceSpofs;
+      h += '<p><strong>' + (cords === 1 ? 'Single corded.' : cords + ' cords.') + '</strong> ' +
+        (spofs.length
+          ? 'Hangs on ' + spofs.map(function (id) { return esc(byId(t, id).label); }).join(' and ') +
+            '. Any one of those coming out takes this load with it.'
+          : 'No single component anywhere in this diagram drops it.') + '</p>';
+    } else {
+      var r = PowerChain.removeOne(t, n.id);
+      var msg = r.verdict === 'drop'
+        ? 'Taking this out DROPS ' + r.droppedLoads.map(function (id) {
+            return esc(byId(t, id).label);
+          }).join(', ') + '.'
+        : r.verdict === 'unprotected'
+          ? 'Taking this out keeps every load lit, but ' + r.unprotectedLoads.map(function (id) {
+              return esc(byId(t, id).label);
+            }).join(', ') + ' ends up on raw utility.'
+          : 'Taking this out costs nothing. Every load stays up and stays protected.';
+      h += '<p class="verdict ' + (r.verdict === 'ok' ? 'v-ok' : 'v-bad') + '">' + msg + '</p>';
+    }
+
+    if (meta.does) h += '<p><strong>What it does.</strong> ' + esc(meta.does) + '</p>';
+    if (meta.fails) h += '<p><strong>How it bites you.</strong> ' + esc(meta.fails) + '</p>';
+    if (meta.cite) h += '<p class="cite">' + esc(meta.cite) + '</p>';
+    el.innerHTML = h;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var tb = document.getElementById('toolbar');
+  PowerChainTopologies.all.forEach(function (t) {
+    var b = document.createElement('button');
+    b.className = 'topo';
+    b.textContent = t.name;
+    b.setAttribute('aria-pressed', String(t === state.topo));
+    b.addEventListener('click', function () {
+      state.topo = t; state.out = null; state.selected = null;
+      Array.prototype.forEach.call(tb.children, function (c) {
+        c.setAttribute('aria-pressed', String(c === b));
+      });
+      render();
+    });
+    tb.appendChild(b);
+  });
+
+  render();
+}());
+</script>
+</body>
+</html>

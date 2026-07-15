@@ -5,11 +5,11 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
-    learn    todo
-    build    todo
-    verify   todo
-    publish  todo
+    source   done
+    learn    done
+    build    done
+    verify   done
+    publish  done
     live     todo
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
@@ -18,3 +18,51 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+
+2026-07-15  source: done.
+            Primary is Schneider WP75 Rev 4, "Comparing UPS System Design Configurations." Free,
+            fetched, read in full. Chosen because it is the rare free document that publishes BOTH
+            a one line AND its own stated verdict on that one line, which is the only thing that
+            makes a verify phase possible here.
+            The finding that reshaped the project: Uptime's own public pages never use the words
+            N, N+1, or 2N. That vocabulary is industry convention mapped onto their tiers, not
+            their definition, and their Tier Standard: Topology is gated and unread. So the tool
+            does not output tiers. It cannot honestly. See sources/SOURCES.md.
+            Located but deliberately unused this pass: RD111, RD108 (both free, both explicitly
+            Tier III labelled, both name RPP and busway as nodes, which WP75 does not), WP48,
+            DOE FEMP, OCP. Logged in SOURCES.md so the next pass does not repeat the search.
+
+2026-07-15  learn: done. reference/concurrent-maintainability.md.
+            Wrote up the tier caveat, the three way outcome of pulling a component (up / lit but
+            unprotected / dark), redundant components against redundant paths, and the cord count
+            being where these designs are actually decided.
+
+2026-07-15  build: done. build/index.html + engine.js + topologies.js.
+            Zero dependencies, no CDN, no build step. Hand rolled SVG.
+            All five WP75 figures traced node by node and edge by edge at high magnification,
+            including which lines are solid and which are dashed, since the dashed ones are the
+            alternate feeds and reading them backwards inverts the answer. The Figure 5 STS ring
+            in particular took real tracing: each UPS feeds two STS, one as primary and one as
+            secondary, and it is symmetric.
+            Engine models the WP75 p.3 definition properly, including its second clause: a load
+            that stays lit only by closing a bypass is on raw utility, and that is a FAIL, not a
+            pass. So "fed" and "fed on protected power" are tracked separately.
+
+2026-07-15  verify: done. 31 checks, 0 failures. node verify/verify.js
+            Every expectation quotes WP75's own words. No tier assertions, on purpose.
+            The verify phase earned its keep three times:
+            1. Mutation testing found the unplanned fault analysis was DEAD CODE: breaking its
+               logic changed no test result. Cut it rather than ship it. No published claim to
+               check it against, and it would have been wrong anyway (a real UPS has an internal
+               static bypass, WP75 p.5, which these figures do not draw).
+            2. Mutation testing found a REAL BUG: Figure 7's bus tie was encoded one way, so side
+               B could never back feed side A. Fixed, and now covered by an assertion tied to the
+               p.16 claim about what that tie is for.
+            3. A structural check in the browser found two node boxes silently overlapping in the
+               Figure 5 layout. Fixed, and promoted to a permanent layout test.
+            All six engine mutants now go red. Baseline is green. The suite measures something.
+
+2026-07-15  publish: done. Pushed. Verify gate passed first, per the repo rule.
+            `live` stays todo: GitHub Pages is not enabled for this repo yet, so there is no
+            hosted demo link. The app runs locally by opening build/index.html. Nothing to
+            configure. Flipping `live` needs Pages turned on, which is a repo setting.
