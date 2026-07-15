@@ -5,7 +5,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
+    source   wip
     learn    todo
     build    todo
     verify   todo
@@ -18,3 +18,33 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+2026-07-15  source wip. Sourced early, as part of one 02/03/04 fan out. Sourcing early is not the
+            same as starting the build: the gate still stands, and 03 does not build until 02's
+            verify passes. Front loading only surfaces the real risk (a project with no verifiable
+            source) before the build is sunk into it. Hunting a free published sequence of operation
+            with STATED TIMER VALUES: TDNE, TDES, TDEN, TDEC, neutral delay, plus voltage and
+            frequency pickup and dropout setpoints. Vendor IOM manuals, not datasheets, are where
+            those tables live. NFPA 110 is cited and linked only, never reproduced.
+2026-07-15  source STILL wip, but the primary is FOUND and it is strong: ASCO Group 5 Controller
+            User's Guide, 381333-126K (4000/7000 Series). It publishes both the sequence and its own
+            stated verdict on it, which is the WP75 pairing. The load bearing sentence, read directly
+            out of the PDF (p.4-4): "Three criteria must be met for the sources to be considered
+            in-sync. The phase difference between the sources must be less than 5 degrees, the
+            frequency difference must be less than 0.2 Hz, and the voltage difference must be less
+            than 5%." Plus a full timer table with defaults AND ranges (p.2-4/2-5), all three
+            transition types, and the voltage/frequency table (p.2-2). Russelectric Model 2000 traced
+            as an independent cross check: structure agrees, NUMBERS DIFFER (engine start override
+            3 sec vs ASCO 1 sec). So the sim names the vendor whose sequence it runs; there is no
+            such thing as "the" ATS defaults.
+            ⚠ WHY STILL wip, ONE REASON: the copy read is a DISTRIBUTOR'S MIRROR (Rev K), not ASCO's
+            own page, which was located but never fetched. Defaults are exactly what this project
+            verifies against, and a different revision could carry different ones. 02 proved this
+            session that a third party rehost is fine for LOCATING a document and is not evidence
+            about its CONTENTS. Fetch 381333-126K from the manufacturer and diff before shipping.
+            Found in the primary and left unresolved on purpose: the manual CONTRADICTS ITSELF on the
+            Shed Load timer (table p.2-6 says 1.5 sec, narrative p.2-7 says "3 second default"). Do
+            not build against it without surfacing the discrepancy.
+            Do NOT use any Eaton ATC-300+ number: 4 fetch attempts failed, values came only from a
+            search engine's synthesis. Eaton is the vendor that actually uses the TDNE/TDES/TDEN
+            names, so the trap is labelling ASCO's traced numbers with Eaton's acronyms. That pairing
+            would be fabricated. Use ASCO's own feature names (1C, 2B, 2E, 3A) and cite ASCO.

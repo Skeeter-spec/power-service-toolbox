@@ -5,7 +5,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
+    source   wip
     learn    todo
     build    todo
     verify   todo
@@ -18,3 +18,39 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+2026-07-15  source wip. Sourced early, as part of one 02/03/04 fan out. Sourcing early is not the
+            same as starting the build: the gate still stands, and 04 does not build until the
+            projects ahead of it verify. Hunting a published worked 51 trip time example that states
+            its own answer (CT ratio, tap, time dial, fault current, and the resulting seconds), and
+            the IEEE C37.112 closed form equations and constants from a FREE reprint. The equations
+            hunt is deliberately DUPLICATED with 02: two independent finds agreeing is evidence, and
+            disagreeing is a finding. IEEE C37.2 is gated, so the device number table is cited and
+            linked, never reproduced. Open question: what can 04 honestly say about 50/51/27/59/87/
+            25/86 WITHOUT C37.2 in hand.
+2026-07-15  source STILL wip, and the split is the point. Devices 50/51 and 87 are sourced to
+            primaries; 25 and 86 are NOT. A bench modelling seven devices to two different standards
+            of evidence is the exact failure this repo exists to avoid, so the phase does not flip
+            until 25 has a primary.
+            50/51: shares 02's primary, the GE Multilin 850 manual (the interlock is real: 04's
+            curves plot in 02's engine). Worked example with a STATED ANSWER (p.4-124): IEEE
+            Extremely Inverse, TDM=2, 5x pickup -> "will not occur before 2.59 s". Prose 2.59, table
+            2.593, equation 2.5934. Recomputed all 210 published cells: 210/210 agree, worst 0.135%.
+            Verify phase proven before the bench exists.
+            87: strong. SEL technical paper "Percentage Restrained Differential, Percentage of What?"
+            (Thompson), read in full. Publishes TWO competing restraint definitions real relays
+            actually use (AVERAGE vs MAXIMUM) + worked numeric tables. The bench MUST pick one and
+            say so on screen: the verdict for the same injected currents CHANGES with the choice.
+            27/59: structure only (PICKUP / PICKUP DELAY / DROPOUT DELAY, a definite time model).
+            Verifiable against its own stated behaviour. NO published numeric example found, so the
+            assertions are about timer behaviour, not a sourced number. Do not imply parity with 51.
+            🔴 25: NO PRIMARY. Sole candidate returned HTTP 403. The ranges floating around (10-20
+            deg, 0.1-0.2 Hz, 2-5%) are a search engine's synthesis and are NOT citation ready. Do not
+            build the 25 element yet. 03 proved this class of number IS publishable (it traced a real
+            one from a manufacturer manual), so fetch an SEL/GE/Basler/Beckwith sync check guide.
+            🔴 86: ZERO sourced material. It is a latch, there is nothing to compute, and that claim
+            is still domain knowledge rather than a citation. Labelled as such.
+            NAMING TRAP, worse here than in 02: the GE 850 manual ALONE ships TWO families, a 3
+            constant "IEEE" (A,B,p) and a 5 constant "ANSI" (A-E). BOTH have a row called "Extremely
+            Inverse" and they are different equations. SEL's "US" curves are a third reusing the same
+            labels. A LABEL DOES NOT IDENTIFY A CURVE. Pick one family, name its manual, never mix.
+            Claim no C37.112 conformance (gated, and GE and SEL cite it over different numbers).

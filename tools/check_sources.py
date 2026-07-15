@@ -18,6 +18,35 @@ level now fails the gate instead of passing as prose.
 
 THE LOAD BEARING RULE IS #3 BELOW: every URL anywhere in the file must appear in the audit table.
 Without it you could audit three sources, cite twelve, and pass.
+
+RULE 4, ADDED AFTER IT BIT: "READ AT" IS A SEPARATE AXIS FROM "HOW FAR YOU READ"
+
+The level says how DEEPLY a document was read. It says nothing about WHOSE COPY was read, and those
+are independent. 02 recorded its primary as TRACED, which was true (the equation was rendered at 9x
+and all 210 published cells recomputed off it), while the prose claimed it was "read at the
+publisher's own PDF", which was FALSE: docs.ips.us is a distributor's document store, the cover says
+"Courtesy of store.ips.us", and every one of the 562 pages was re-rendered by the distributor's PDF
+tool. The level was honest and the provenance was fiction, and nothing here could tell the difference
+because there was no field for it.
+
+That was not one project's slip. Adding the field surfaced the same thing in THREE of four projects:
+02 and 04 both trace the GE 850 at a distributor, 04 and 02 both trace SEL at a university course
+handout, and 03 traces an ASCO manual at a website builder's CDN while listing the manufacturer's own
+copy one row below, graded CITED, UNREAD. Only 01 reads its primary at the publisher.
+
+This is the repo's own rule ("anything the verify phase rests on gets read at the publisher's PDF")
+being written down and then not applied, twice, by the sessions that wrote it. A rule that lives in
+prose is a wish. This is that rule as a field.
+
+WHY A MIRROR IS A WARNING AND NOT A FAILURE
+
+Making it fatal would be wrong and would backfire. Sometimes the publisher's copy genuinely cannot be
+had: GE's own 850 download is login walled, and the version this repo reads (1.6x) is not offered by
+GE at all any more. A gate that fails on that leaves two options, both bad: drop a good source, or
+lie about where it came from. So a mirror is VISIBLE, not fatal. What IS fatal is failing to say.
+
+Same two-tier shape as the rest of this repo: being WRONG fails, being INCOMPLETE shows. A gate that
+is permanently red teaches people that red means nothing.
 """
 import re, sys, pathlib
 
@@ -32,36 +61,92 @@ LEVELS = {
     "CITED, UNREAD": "Named by number only, never opened (e.g. a paid standard).",
     "GATED, UNREAD": "Paywalled or login walled. Cannot access. No content used.",
 }
+
+# WHOSE COPY was read. Independent of how far it was read.
+PROVENANCE = {
+    "PUBLISHER": "The organization that WROTE it served this file, on its own domain.",
+    "MIRROR": "Anyone else's copy: a distributor, a university handout, a scan site, a CDN. "
+              "Fine for LOCATING a document. Not evidence about its CONTENTS.",
+    "NONE": "No URL at all (a paid standard cited by number). Nothing was read, so nothing was mirrored.",
+}
+
+# A mirror is only worth flagging when something RESTS on it. Nobody is misled by a LOCATED ONLY row
+# pointing at a scan site; that row already says it proves nothing.
+LOAD_BEARING = {"TRACED", "READ IN FULL"}
+
 HEADING = "## Source audit"
 URL_RE = re.compile(r"https?://[^\s)>\]|,]+")
 
 
-def check_one(path):
-    t = path.read_text()
-    errs = []
+def audit_rows(t):
+    """The audit table's data rows: the FIRST contiguous run of table lines after the heading.
 
+    The old version took every "|" line in the rest of the file, which silently swallowed any LATER
+    table as if its rows were audit rows. 01 has no second table so it never showed; 02 has two (a
+    curve family comparison and a transcription comparison) and every one of their rows was reported
+    as a malformed citation with a bogus level. That pushes a SOURCES.md toward containing no table
+    but this one, in a repo whose whole thesis is showing your work.
+
+    Both the checker AND the "(n sources)" summary read the window from here. They used to compute it
+    separately, so the fix landed in the checker while the summary went on counting every "|" in the
+    file and cheerfully reported "21 sources" for an 11 row table. One window, one answer.
+
+    Rule 3 in check_one still scans the FULL file text for URLs, so narrowing this window does not
+    narrow the audit.
+    """
     if HEADING not in t:
-        return [f"no '{HEADING}' table. Every SOURCES.md needs one."]
-
-    # The table runs from the heading to the next blank-line-separated non-table line.
-    tail = t.split(HEADING, 1)[1]
-    rows = [l for l in tail.splitlines() if l.strip().startswith("|")]
+        return None
+    rows, seen_table = [], False
+    for line in t.split(HEADING, 1)[1].splitlines():
+        if line.strip().startswith("|"):
+            seen_table = True
+            rows.append(line)
+        elif seen_table:
+            break  # first non-table line after the table ends it
     rows = [r for r in rows if not re.match(r"^\s*\|[\s|:-]+\|\s*$", r)]  # drop separator
+    return rows
+
+
+def check_one(path):
+    """Returns (errors, warnings). Errors fail the gate; warnings are printed and do not."""
+    t = path.read_text()
+    errs, warns = [], []
+
+    rows = audit_rows(t)
+    if rows is None:
+        return [f"no '{HEADING}' table. Every SOURCES.md needs one."], []
     if len(rows) < 2:
-        return [f"'{HEADING}' table has no rows."]
+        return [f"'{HEADING}' table has no rows."], []
     body = rows[1:]  # drop header
 
     audited_urls = set()
     for r in body:
         cells = [c.strip() for c in r.strip().strip("|").split("|")]
-        if len(cells) < 3:
-            errs.append(f"malformed row (need Source | Level | URL): {r.strip()[:70]}")
+        if len(cells) < 4:
+            errs.append(f"malformed row (need Source | Level | URL | Read at): {r.strip()[:70]}")
             continue
-        source, level, url = cells[0], cells[1], cells[2]
+        source, level, url, prov = cells[0], cells[1], cells[2], cells[3]
+
         lvl = re.sub(r"[*`]", "", level).strip().upper()
         if lvl not in LEVELS:
             errs.append(f"'{source[:40]}' has level '{level}' which is not a real level.\n"
                         f"          Use one of: {', '.join(LEVELS)}")
+
+        # RULE 4. Saying nothing is the failure. Saying MIRROR is fine.
+        pv = re.sub(r"[*`]", "", prov).strip().upper()
+        if pv not in PROVENANCE:
+            errs.append(f"'{source[:40]}' has 'Read at' = '{prov}', which is not a real provenance.\n"
+                        f"          Use one of: {', '.join(PROVENANCE)}\n"
+                        f"          This field is separate from the level: it says WHOSE COPY you read.")
+        elif pv == "MIRROR" and lvl in LOAD_BEARING:
+            warns.append(f"{lvl} at a MIRROR: {source[:64]}\n"
+                         f"             {url[:76]}\n"
+                         f"             Fine for locating a document, not evidence about its contents.\n"
+                         f"             If anything RESTS on this, read it at the publisher or say why you cannot.")
+        elif pv == "NONE" and URL_RE.search(url):
+            errs.append(f"'{source[:40]}' says 'Read at: NONE' but has a URL. If a copy was reachable, "
+                        f"say whose it was.")
+
         for u in URL_RE.findall(url):
             audited_urls.add(u.rstrip("."))
         if not URL_RE.search(url) and url.lower() not in ("none", "n/a", "-", "(none)"):
@@ -73,7 +158,7 @@ def check_one(path):
             errs.append(f"UNAUDITED CITATION: {u[:78]}\n"
                         f"          It appears in the prose but has no row in the audit table.\n"
                         f"          Every citation states its verification level, or it does not ship.")
-    return errs
+    return errs, warns
 
 
 def main():
@@ -82,8 +167,9 @@ def main():
         print("  no SOURCES.md files yet (no project has reached `source`)")
         return 0
     bad = 0
+    mirrors = 0
     for f in files:
-        errs = check_one(f)
+        errs, warns = check_one(f)
         rel = f.relative_to(ROOT)
         if errs:
             bad += 1
@@ -91,9 +177,19 @@ def main():
             for e in errs:
                 print(f"        - {e}")
         else:
-            n = len([l for l in f.read_text().split(HEADING, 1)[1].splitlines()
-                     if l.strip().startswith("|")]) - 2
-            print(f"  OK   {rel} ({n} sources, all with a stated verification level)")
+            n = len(audit_rows(f.read_text())) - 1  # minus the header row
+            print(f"  OK   {rel} ({n} sources, all with a stated level and provenance)")
+        for w in warns:
+            mirrors += 1
+            print(f"        ⚠ {w}")
+
+    if mirrors:
+        # Printed once, at the end, so it reads as a standing condition of the repo rather than as
+        # noise attached to one file. It is not a failure and it must not become invisible either.
+        print(f"\n  {mirrors} load-bearing citation(s) read at a mirror. NOT a gate failure: sometimes the")
+        print( "  publisher's copy is genuinely gated (GE's own 850 download is login walled, and the")
+        print( "  version this repo reads is not offered there at all). Visible on purpose, so it stays a")
+        print( "  known risk instead of an assumption. See each SOURCES.md for what was done about it.")
     return 1 if bad else 0
 
 

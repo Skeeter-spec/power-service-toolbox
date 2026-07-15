@@ -15,7 +15,18 @@
 #   2. A REAL BUG. A bus tie encoded one way, so one side could never back feed the other. Nothing
 #      failed, because no assertion covered what the tie was for.
 #
-# ANY SURVIVING MUTANT IS A FINDING. It is exactly one of those two things. Both are worth knowing.
+# ANY SURVIVING MUTANT IS A FINDING. It is USUALLY one of those two things, and 02 turned up the
+# third, so the list is no longer "exactly one of two":
+#
+#   3. AN EQUIVALENT MUTANT. The edit produces code that cannot be told apart from the original by
+#      ANY input, so no assertion can kill it and there is nothing to fix. 02's case: `m <= 1` vs
+#      `m < 1` guarding a division, where at m = 1 the division already returns Infinity on its own.
+#      The action is to DELETE THE MUTANT and write down why, not to cut the code and not to chase a
+#      test that cannot exist. Prove equivalence before claiming it: if you cannot show that no input
+#      distinguishes the two, you have a coverage hole and you are talking yourself out of it.
+#
+# The distinction matters because 1 and 2 say "change the code" and 3 says "change the mutant", and
+# guessing wrong means deleting correct code to make a tool go quiet.
 #
 # HOW TO USE IT
 #
@@ -55,11 +66,18 @@ echo ""
 survived=0
 killed=0
 
+# Trim leading/trailing whitespace. This used to be `xargs`, which was a real bug and a sneaky one:
+# xargs parses SHELL QUOTING, so any description containing an apostrophe ("the family's p") died with
+# "xargs: unterminated quote" and the description came back EMPTY. The mutant still ran, so the run
+# looked fine, but a SURVIVOR could be reported with a blank name -- the one line a person actually
+# needs to read to act on the finding. A tool that reports findings must not mangle their names.
+trim() { echo "$1" | sed 's/^ *//; s/ *$//'; }
+
 while IFS='|' read -r target expr desc; do
   case "$target" in ''|\#*) continue ;; esac
-  target=$(echo "$target" | xargs)
-  expr=$(echo "$expr" | sed 's/^ *//; s/ *$//')
-  desc=$(echo "$desc" | xargs)
+  target=$(trim "$target")
+  expr=$(trim "$expr")
+  desc=$(trim "$desc")
   f="$P/$target"
   [ -f "$f" ] || { echo "  SKIP       $desc (no such file: $target)"; continue; }
 
