@@ -1,0 +1,20 @@
+# 10 Three phase sandbox — PROGRESS.log
+
+SOURCE OF TRUTH for this project. The Mission Control dashboard only displays what this file decides.
+Update this first, then mirror the phase cells into mission-control/projects.csv and rebuild.
+
+Phases: source | learn | build | verify | publish     Values: todo | wip | done
+
+    source   todo
+    learn    todo
+    build    todo
+    verify   todo
+    publish  todo
+    live     todo
+
+An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
+contains finished, verified work.
+
+## Log
+
+2026-07-15  Scaffolded. No work started.

@@ -1,0 +1,10 @@
+__pycache__/
+.DS_Store
+*.pyc
+
+# Tracker stays internal. Publish the products, never the tracker (matches keystone).
+# Local source for the Mission Control artifact lives here and is deliberately unpublished.
+mission-control/
+
+# Working notes, not content.
+SHELF.md
