@@ -10,7 +10,7 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     build    done
     verify   done
     publish  done
-    live     todo
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -63,6 +63,16 @@ contains finished, verified work.
             All six engine mutants now go red. Baseline is green. The suite measures something.
 
 2026-07-15  publish: done. Pushed. Verify gate passed first, per the repo rule.
-            `live` stays todo: GitHub Pages is not enabled for this repo yet, so there is no
-            hosted demo link. The app runs locally by opening build/index.html. Nothing to
-            configure. Flipping `live` needs Pages turned on, which is a repo setting.
+            [SUPERSEDED SAME DAY by the `live` entry below. Do not read the next two lines as a
+            live claim: Pages IS enabled now.] `live` stays todo: GitHub Pages is not enabled for
+            this repo yet, so there is no hosted demo link.
+
+2026-07-15  live: done. GitHub Pages enabled (main / root).
+            https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html
+            Verified properly rather than by status code: fetched the three files GitHub is actually
+            serving, confirmed all three are byte identical to the local copies that were driven in a
+            real browser, and ran the full verify suite against the SERVED code. 31/31.
+            Note for future QA: skeeter-spec.github.io is blocked in BOTH browser surfaces (the
+            Browser pane blocks it by policy; claude-in-chrome refuses the origin). So the live site
+            cannot be driven directly. Checksum the served bytes against a locally driven copy and
+            run the gate against the download instead. That is a stronger check anyway.

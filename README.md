@@ -59,7 +59,7 @@ The first four carry the weight. The rest round out the trade.
 
 | # | Tool | What it does |
 |---|---|---|
-| 01 | Power chain one line explorer | Utility to rack: MV switchgear, transformer, LV switchgear, ATS, UPS, PDU, RPP, busway, rack PDU. Click a node for what it does and how it fails. Overlay N+1 against 2N. |
+| 01 | **[Power chain one line explorer](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)** ✅ **live** | Five published UPS configurations as interactive one lines. Click any component to take it out of service and watch what goes dark. Verified against the source paper's own stated conclusions. |
 | 02 | TCC coordination studio | Plot breaker, fuse, and relay curves on log log axes, overlay two devices, compute the coordination interval, flag miscoordination. |
 | 03 | ATS sequence simulator | Utility fail, sense, timers, engine start, transfer, retransfer, cooldown. Open and closed transition, in phase monitor, sync check, full timing chart. |
 | 04 | Relay bench | ANSI device numbers 50, 51, 27, 59, 87, 25, 86 as a configurable simulated relay. Set pickup and time dial, inject a fault current, watch it trip. |
@@ -72,11 +72,20 @@ The first four carry the weight. The rest round out the trade.
 
 ## Status
 
-The scaffold, the glossary, and the ten project folders are up. **No tool has passed `verify` yet, so
-no tool is live yet.** Each project's `PROGRESS.log` is the source of truth for where it actually
-stands; this table is not, and neither is this paragraph.
+**One of ten is live: 01, the power chain one line explorer.** It passed the gate, so it shipped.
+The other nine are folders and a plan. Each project's `PROGRESS.log` is the source of truth for where
+it actually stands; this table is not, and neither is this paragraph.
 
 Building in order: 01, then 02, 03, 04. The next one does not start until the current one verifies.
+
+**What the gate cost 01, since that is the only honest way to show a rule is real.** Mutation testing
+the verify suite (breaking the engine on purpose to prove the tests could go red) found that an entire
+unplanned fault analysis was dead code: breaking its logic changed no test result. It was cut rather
+than shipped, because nothing in the source paper states a claim to check it against, and it would
+have been wrong anyway. The same technique then found a real bug: a bus tie encoded one way, so one
+side could never back feed the other. A tie that conducts one way is not a tie.
+
+A green test suite proves nothing until you have watched it go red.
 
 ## Layout
 

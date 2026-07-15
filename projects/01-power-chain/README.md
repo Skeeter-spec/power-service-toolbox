@@ -1,5 +1,7 @@
 # 01. Power chain one line explorer
 
+**▶ [Open the live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)**
+
 Five published UPS configurations, drawn as interactive one line diagrams. Click any component to
 take it out of service and watch what goes dark.
 
