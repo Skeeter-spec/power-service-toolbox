@@ -5,10 +5,10 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
-    learn    todo
-    build    todo
-    verify   todo
+    source   done
+    learn    done
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -18,3 +18,116 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+2026-07-15  source wip. Hunting the primary: a published trip curve with published trip times, or a
+            published coordination example with a stated verdict. Sourced as part of one 02/03/04
+            fan out, because serial sourcing hides the real risk (that a project has no verifiable
+            source) until the build has already started. Two open questions decide the scope:
+            (a) does a free source print the IEEE C37.112 closed form equations and constants, and
+            (b) IS THERE A SOURCED TOLERANCE? "Within tolerance" is 02's whole pass criterion and 01
+            never needed one. An invented tolerance makes the verify phase theatre, so if no
+            published tolerance exists this project gets re scoped, not started.
+2026-07-15  source DONE. Primary: GE Multilin 850 Feeder Protection System Instruction Manual (free,
+            no login). It beats 01's WP75 on the one axis that matters: WP75 published a prose
+            verdict, this publishes a NUMBER. In one document: the equation (p.4-115), the constants
+            (Table 4-34), a 210 cell published trip time table (Table 4-35), and a prose worked
+            example with a stated answer (p.4-124, "TDM = 2 ... 5 times bigger than the PKP level
+            ... will not occur before 2.59 s"). Three representations agree: prose 2.59, table 2.593,
+            equation 2.5934.
+            VERIFY PHASE PROVEN BEFORE THE ENGINE EXISTS: recomputed all 210 published cells from the
+            published equation + constants. 210/210 agree, worst error 0.135%, which is the table's
+            own rounding to 3 decimals.
+            ⚠ THE TOLERANCE QUESTION IS ANSWERED, AND THE ANSWER IS "NO NUMBER NEEDED." Reproducing a
+            published TABLE is arithmetic; the pass criterion is the table's printed precision. SEL's
+            +/-1.5 cycles / +/-4% spec measures a PHYSICAL relay against its own curve, which is an
+            honesty note for the app, NOT the gate. Nothing was invented, so nothing is theatre.
+            🔴 THE TOOL MUST NOT CLAIM "IMPLEMENTS IEEE C37.112". GE and SEL BOTH cite C37.112-1996,
+            in their own words, over DIFFERENT constants, and C37.112 is gated and unread. Measured
+            the divergence rather than eyeballing it: ~5x apart, and the ratio is FLAT for Moderately
+            and Very Inverse (same shape, different time dial convention) but DRIFTS 4.95 -> 3.89 for
+            Extremely Inverse (a genuinely different SHAPE). SEL's own footnote independently flags
+            that same row as the outlier. Mixing the two tables silently = trip times wrong by 5x.
+            This is 01's tier rule firing on a new subject: name the manufacturer family, cite the
+            manual, claim no standards conformance.
+            Lesson earned the hard way: two independent research passes each scraped SEL's Table 9.3
+            from the same third party scan and returned two DIFFERENT wrong equations, neither
+            matching the publisher's PDF, both physically absurd (tripping at pickup). Anything the
+            verify phase rests on gets read at the publisher's PDF. See sources/SOURCES.md.
+            Also patched tools/check_sources.py: it counted EVERY pipe row after the audit heading,
+            so a second table in a SOURCES.md was read as bogus citations, and the summary line
+            reported 21 sources for an 11 row table. Mutation tested both directions.
+
+2026-07-15  learn + build + verify DONE. 50 verify checks, 17 mutants, all dead. Gate green.
+            THE PRIMARY WAS RE READ FROM SCRATCH BY THIS SESSION, and that turned out to matter more
+            than the build. Everything below was found by re reading, not by writing code.
+
+            BUILD. build/curves.js (Table 4-34 constants, family id `ge850-ieee` so it can never be
+            confused with another vendor's "IEEE" curves), build/engine.js (trip, reset, interval,
+            overlap), verify/published.js (the 210 cell answer key, GENERATED from the PDF, not typed),
+            build/index.html (hand rolled SVG log log, no charting lib: CSP and offline both bar one).
+            The equation was confirmed by rendering p.4-115 at 9x and reading the grouping BY EYE, not
+            off the text layer. Independently reproduced 210/210, worst 0.135%, and the prose 2.5934.
+            Same numbers as the earlier session got. Two independent reads agreeing is the evidence.
+
+            🔴 SOURCES.md's CENTRAL CLAIM WAS FALSE, and it was this project's OWN rule that it broke.
+            It said the rows verify rests on were "read directly at the publisher's own PDF".
+            docs.ips.us is a DISTRIBUTOR's document store: the cover says "Courtesy of store.ips.us",
+            the stamp is on all 562 pages, and the metadata shows a 2023 Aspose re render. The SEL row
+            is a UNIVERSITY COURSE HANDOUT. So rule #10, "anything the verify phase rests on gets read
+            at the publisher's PDF", was written down by the session that earned it and then not
+            applied to the primary two lines above it. A RULE THAT LIVES IN PROSE IS A WISH.
+            It is a machine checked FIELD now: `Read at` = PUBLISHER / MIRROR / NONE, required by
+            check_sources.py. Adding it found the same thing in 3 of 4 projects (9 load bearing rows
+            at mirrors). Only 01 reads its primary at the publisher.
+            MIRROR IS A WARNING, NOT A FAILURE, on purpose: GE's own download is LOGIN WALLED and GE
+            does not offer version 1.6x at all any more, so "read it at the publisher" is not a step
+            that was skipped, it is a step that DOES NOT EXIST for this document. A gate that fails
+            there only teaches people to lie in the column. Wrong fails; incomplete shows.
+            What the confidence actually rests on instead, stated in SOURCES.md: the document agrees
+            with itself 211 times (equation -> 210 cells + prose), and GE's F650 manual, a different
+            document through a different chain, publishes the identical constants.
+
+            🔴 THE 0.3 TO 0.4 s INTERVAL IS NOT PUBLIC DOMAIN. TM 5-811-14 is a US Army document, so
+            the instinct is that all of it is quotable. Para 4-2d carries an ASTERISK: "Reprinted with
+            permission from ANSI/IEEE Standard 242-1986 ... copyright 1986 by IEEE." The permission was
+            granted to the Army, not to this repo. A DOCUMENT'S LICENCE IS NOT UNIFORM: "it is a
+            government document" is a claim about the cover, not about the paragraph. So the number is
+            cited and the passage is not reproduced. The method the app DOES report, "ensure no
+            overlapping of curves", is para 4-2c(7), OUTSIDE the asterisk, in the Army's own prose.
+            Nearly quoted the interleaved text layer's version of that passage, which stitches two
+            columns into the sentence "In general only relays, the time interval is usually 0.3-0.4
+            seconds". THAT SENTENCE IS NOT IN THE DOCUMENT. Rendered the page and read it instead.
+
+            02 PRINTS NO COORDINATION VERDICT. Same shape as 01 printing no tier. Its own source says
+            the interval is "usually" 0.3 to 0.4 s, and an `if` statement turns a rule of thumb into a
+            limit the source declined to state, then prints it where it reads as a finding. The band is
+            drawn as context; the judgment stays with the reader. verify/ asserts the REFUSAL.
+
+            MUTATION TESTING FOUND THREE THINGS, one of them in the shared tooling.
+            (a) tools/mutate.sh trimmed with `xargs`, which PARSES SHELL QUOTING, so any mutant whose
+                description held an apostrophe died with "unterminated quote" and printed a BLANK NAME.
+                The mutant still ran, so a SURVIVOR could be reported nameless: the one line a person
+                needs to act on. Fixed with sed. Affected every project.
+            (b) A real coverage hole: swapping the reset equation's literal 2 for the family's p
+                SURVIVED, because reset was only tested on Extremely Inverse, whose p IS 2.000. Only
+                Moderately Inverse (p=0.02) can see it. A CONSTANT THAT EQUALS A LITERAL CANNOT TEST
+                THAT LITERAL.
+            (c) A THIRD CATEGORY the runner did not model: an EQUIVALENT MUTANT. `m <= 1` -> `m < 1`
+                cannot be killed, because division by zero already returns Infinity at m=1. Not dead
+                code, not a coverage hole. PROVED it rather than assuming, deleted the mutant, kept the
+                `=` (it states intent), and taught mutate.sh the category. 1 and 2 say "change the
+                code"; 3 says "change the mutant", and guessing wrong deletes correct code.
+
+            NO INVENTED TOLERANCE, and six cells explain why the check is written oddly. The criterion
+            is the table's own printed precision: half of the last printed digit, 0.0005 s. Six cells
+            (all Very Inverse) land on an EXACT rounding tie: VI TDM=0.5 M=1.5 is exactly 8.0895 and GE
+            rounds half up to 8.090, while the nearest double is 8.0894999999999992. So "round to 3 and
+            demand equality" FAILS on those six for reasons that have nothing to do with protection.
+            Also: "calc < 8.0895" is VACUOUS, because the literal 8.0895 IS the same double as calc.
+            The check scales by 1000, where the tie 8089.5 is exactly representable and the comparison
+            finally means something.
+
+            UI checked structurally, then by eye, and BOTH were needed. The structural pass caught
+            curves escaping the viewBox (drawn to 4000 s on a 1000 s axis) -> clipPath. It could not
+            see that the band's label sat on top of the downstream curve; the screenshot could. And a
+            getBoundingClientRect check on the clipped <g> reported the SAME box clipped or not, i.e.
+            the MEASUREMENT could not see clipping at all: a green control that proved nothing.

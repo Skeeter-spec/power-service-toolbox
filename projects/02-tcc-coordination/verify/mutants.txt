@@ -1,0 +1,66 @@
+# Mutants for 02. Run: ./tools/mutate.sh projects/02-tcc-coordination
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one of these MUST make the suite go
+# red. A survivor means that behaviour is either dead code or untested, and both are findings.
+#
+# 02 is a different shape of project from 01 and the mutants show it. 01's engine answered a
+# structural question, so its mutants broke graph logic. This engine's whole claim is ARITHMETIC
+# against a published table, so most of these are one-character edits to an equation. That is the
+# point: the failure mode here is not a broken feature, it is a number that is quietly wrong, and a
+# number that is quietly wrong is exactly what this repo exists to not ship.
+#
+# Two of these mutants are not invented. "B inside the denominator" is the actual wrong equation a
+# research pass returned when it read a curve table off a third party scan instead of the
+# publisher's PDF. It predicts a relay tripping at its own pickup current. It is kept here because
+# the best argument for reading primaries is a test that fails when you did not.
+
+# --- the equation itself. Every one of these should kill 210 cells at once. ---
+build/engine.js | s/return device.tdm \* (s.A \/ (Math.pow(m, s.p) - 1) + s.B);/return device.tdm * (s.A \/ (Math.pow(m, s.p) - s.B));/ | B moved into the denominator (the real wrong scrape: trips at pickup)
+build/engine.js | s/return device.tdm \* (s.A \/ (Math.pow(m, s.p) - 1) + s.B);/return device.tdm * (s.A \/ (Math.pow(m, s.p) - 1)) + s.B;/ | B added after the TDM multiplier instead of inside the bracket
+build/engine.js | s/return device.tdm \* (s.A \/ (Math.pow(m, s.p) - 1) + s.B);/return device.tdm * (s.A \/ Math.pow(m, s.p) + s.B);/ | the "-1" dropped from the denominator
+build/engine.js | s/return device.tdm \* (s.A \/ (Math.pow(m, s.p) - 1) + s.B);/return s.A \/ (Math.pow(m, s.p) - 1) + s.B;/ | TDM stops multiplying anything (every time dial reads the same)
+build/engine.js | s/return device.tdm \* (s.A \/ (Math.pow(m, s.p) - 1) + s.B);/return device.tdm * (s.A \/ (Math.pow(m, 2) - 1) + s.B);/ | p hardcoded to 2 (right for two shapes, wrong for Moderately Inverse)
+
+# --- the domain of the curve. Below pickup is not a small-number case, it is a no-trip case. ---
+build/engine.js | s/if (m <= 1) return Infinity;// | the element trips below its own pickup current
+
+# NOT A MUTANT, AND THE REASON IS WORTH THE PARAGRAPH.
+#
+# The obvious next mutant here is `if (m <= 1)` -> `if (m < 1)`: the element trips exactly AT pickup,
+# where the curve is asymptotic. It was written, it SURVIVED, and it survived because it is an
+# EQUIVALENT MUTANT: at m = 1 exactly, Math.pow(1, p) - 1 is 0, and IEEE-754 division by zero already
+# returns +Infinity for all three shapes. Both versions return Infinity. NO INPUT DISTINGUISHES THEM,
+# so no assertion can kill it, and the runner's advice ("dead code, or a coverage hole") is wrong on
+# both counts here.
+#
+# So this file records a THIRD category the runner does not model. An equivalent mutant is not a
+# finding about the code, it is a finding about the mutant. The action is to delete the mutant and
+# say why, which is this paragraph.
+#
+# The `=` STAYS IN THE CODE. It is redundant to IEEE-754 and it is not redundant to a reader: it
+# states that "at pickup the element does not trip" is intended behaviour rather than an accident of
+# division by zero. Cutting correct, intentional code because a mutation runner could not kill it
+# would be the tool wagging the dog.
+
+# --- the reset characteristic, which is a different published equation on the same page. ---
+build/engine.js | s/if (m >= 1) return Infinity;// | the element "resets" while it is timing toward a trip
+build/engine.js | s/return device.tdm \* (s.tr \/ (1 - Math.pow(m, 2)));/return device.tdm * (s.tr \/ (1 - Math.pow(m, s.p)));/ | reset uses the family's p instead of the published literal 2
+
+# --- the interval, and its one real edge case. ---
+build/engine.js | s/seconds: (isFinite(td) \&\& isFinite(tu)) ? tu - td : null,/seconds: tu - td,/ | "neither device trips" leaks a NaN into the UI instead of null
+build/engine.js | s/seconds: (isFinite(td) \&\& isFinite(tu)) ? tu - td : null,/seconds: (isFinite(td) \&\& isFinite(tu)) ? td - tu : null,/ | the interval's sign is inverted (upstream and downstream swap)
+
+# --- overlap detection: the one finding this tool is allowed to report. ---
+build/engine.js | s/if (a.sign !== b.sign) found.push/if (false) found.push/ | curves never cross, so miscoordination is never reported
+
+# --- the constants, and the naming rule that keeps two vendors' tables apart. ---
+build/curves.js | s/A: 28.2, B: 0.1217/A: 28.3, B: 0.1217/ | a one-digit typo in a published constant
+build/curves.js | s/A: 0.0515, B: 0.1140, p: 0.02000/A: 0.0515, B: 0.1140, p: 0.2000/ | a misplaced decimal in Moderately Inverse's p
+build/curves.js | s/tr: 21.6/tr: 21.7/ | a typo in a reset constant (the equation nothing tabulates)
+build/curves.js | s/id: 'ge850-ieee'/id: 'ieee'/ | the family renamed after the standard, inviting two vendors' tables to be mixed
+
+# --- the refusals. These must stay refused. ---
+build/engine.js | s/notAThreshold: true/notAThreshold: false/ | the customary 0.3-0.4 s band stops being flagged as a rule of thumb
+build/engine.js | s/high: 0.4,/high: 0.5,/ | the cited coordination band is silently widened

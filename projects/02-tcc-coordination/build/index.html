@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TCC coordination studio</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #fff; --ink: #14181f; --muted: #5c6673; --line: #d7dce3;
+    --live: #1a6fd4; --dead: #b9c0c9; --hot: #c0392b; --warn: #b3690f; --good: #17794a;
+    --accent: #0f2f5e; --down: #1a6fd4; --up: #b3690f; --grid: #e3e7ec; --gridmaj: #cbd2db;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1a1f27; --ink: #e8ecf1; --muted: #98a3b3; --line: #2c343f;
+      --live: #4a9eff; --dead: #3a424e; --hot: #ff6b5b; --warn: #e0a03c; --good: #3ecf8e;
+      --accent: #9dc4ff; --down: #4a9eff; --up: #e0a03c; --grid: #222932; --gridmaj: #333c48;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .banner {
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 18px; font-size: 13.5px;
+  }
+  .banner strong { color: var(--warn); }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card + .card { margin-top: 14px; }
+  h2 { font-size: 14px; margin: 0 0 8px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
+  .figsrc { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  .dev { border-top: 1px solid var(--line); padding-top: 11px; margin-top: 11px; }
+  .dev:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .devname { font-weight: 650; font-size: 13.5px; display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  select, input[type=number] {
+    font: inherit; font-size: 13px; width: 100%; padding: 5px 7px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .readout { font-variant-numeric: tabular-nums; }
+  .big { font-size: 25px; font-weight: 660; letter-spacing: -0.02em; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .cite { font-size: 12px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 9px; }
+  .finding {
+    font-size: 13px; padding: 8px 10px; border-radius: 7px; margin-top: 9px;
+    background: color-mix(in srgb, var(--hot) 13%, transparent); color: var(--hot);
+  }
+  .quiet { background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted); }
+  table.proof { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  table.proof th, table.proof td { text-align: right; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+  table.proof th:first-child, table.proof td:first-child { text-align: left; }
+  table.proof th { color: var(--muted); font-weight: 600; }
+  .ok { color: var(--good); }
+  footer { margin-top: 26px; font-size: 12.5px; color: var(--muted); }
+  a { color: var(--accent); }
+  .axlabel { font-size: 10px; fill: var(--muted); }
+  .gl { stroke: var(--grid); stroke-width: 1; }
+  .gl.maj { stroke: var(--gridmaj); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>TCC coordination studio</h1>
+  <p class="sub">
+    Two inverse time overcurrent elements on log log axes, from the GE Multilin 850's own published
+    curve equation. Every trip time here is checked against the 210 published in its manual.
+  </p>
+
+  <div class="banner">
+    <strong>Educational. Not for field use.</strong>
+    This reproduces a published worked example so it can be explored. It is not an engineered
+    coordination study, and it does not tell you whether your devices coordinate. It computes an ideal
+    curve, not a relay: a real relay departs from its own programmed curve.
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <p class="figsrc" id="figsrc"></p>
+        <svg id="chart" viewBox="0 0 720 480" role="img" aria-label="Time current curves"></svg>
+      </div>
+
+      <div class="card">
+        <h2>The proof, not the promise</h2>
+        <p class="note" style="margin-top:0">
+          The manual states one of its own cells in prose on p.4-124: an Extremely Inverse curve at
+          TDM&nbsp;=&nbsp;2, with fault current 5&times; pickup, <em>"will not occur before 2.59 s"</em>.
+          Three independent representations inside that one document agree, and this page computes the
+          third of them live:
+        </p>
+        <table class="proof">
+          <thead><tr><th>Representation</th><th>Manual p.4-115 / 4-124</th><th>This page</th></tr></thead>
+          <tbody>
+            <tr><td>Prose worked example</td><td>2.59 s</td><td id="p-prose"></td></tr>
+            <tr><td>Table 4-35 cell</td><td>2.593 s</td><td id="p-table"></td></tr>
+            <tr><td>Equation + Table 4-34</td><td>2.5934 s</td><td id="p-eq"></td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          All 210 cells of Table 4-35 are recomputed in <code>verify/verify.js</code>, which is the gate
+          this project shipped behind. 210 of 210 agree; the worst disagreement is 0.135%, which is the
+          table's own rounding to three decimals.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Devices</h2>
+        <div class="dev" id="dev-down"></div>
+        <div class="dev" id="dev-up"></div>
+        <p class="cite">
+          Curve family: GE Multilin 850, Table 4-34. This tool reproduces one named manufacturer's
+          published curves and claims no standards conformance. GE and SEL both cite IEEE C37.112-1996
+          over different constants, about 5&times; apart, and C37.112 itself is gated and unread here.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>At the fault current</h2>
+        <label for="fault">Fault current (A)</label>
+        <input type="number" id="fault" min="1" step="10" value="1500">
+        <div style="margin-top:12px">
+          <div class="readout"><span class="big" id="ival">n/a</span> <span class="note">interval</span></div>
+          <div class="note readout" id="ibreak"></div>
+        </div>
+        <div id="finding"></div>
+        <p class="cite" id="ctinote"></p>
+      </div>
+
+      <div class="card">
+        <h2>What this will not tell you</h2>
+        <p class="note" style="margin-top:0">
+          There is no pass and no fail here, deliberately. The customary interval is a rule of thumb its
+          own source words as <em>"usually"</em>, and an <code>if</code> statement would turn that into a
+          limit the source declined to state. The band is drawn so you can judge against it. The judgment
+          stays with you.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Part of the <a href="../../../">Power Service Toolbox</a>. Sources and how far each was verified:
+    <code>projects/02-tcc-coordination/sources/SOURCES.md</code>.
+  </footer>
+</div>
+
+<script src="curves.js"></script>
+<script src="engine.js"></script>
+<script>
+'use strict';
+(function () {
+  var FAM = Curves.DEFAULT_FAMILY;
+
+  var state = {
+    down: { family: FAM, shape: 'very-inverse', tdm: 1, pickup: 200 },
+    up:   { family: FAM, shape: 'very-inverse', tdm: 3, pickup: 600 },
+    fault: 1500
+  };
+
+  // Chart geometry. Log-log: a TCC is unreadable on linear axes.
+  var W = 720, H = 480, L = 58, R = 16, T = 14, B = 44;
+  var IW = W - L - R, IH = H - T - B;
+  var I0 = 10, I1 = 100000;      // amps
+  var T0 = 0.01, T1 = 1000;      // seconds
+
+  function xOf(a) { return L + (Math.log10(a) - Math.log10(I0)) / (Math.log10(I1) - Math.log10(I0)) * IW; }
+  function yOf(s) { return T + IH - (Math.log10(s) - Math.log10(T0)) / (Math.log10(T1) - Math.log10(T0)) * IH; }
+
+  function el(tag, attrs, text) {
+    var n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function fmt(s) {
+    if (!isFinite(s)) return 'no trip';
+    if (s >= 100) return s.toFixed(0) + ' s';
+    if (s >= 10) return s.toFixed(1) + ' s';
+    if (s >= 1) return s.toFixed(2) + ' s';
+    return s.toFixed(3) + ' s';
+  }
+
+  function decades(lo, hi) {
+    var out = [];
+    for (var d = Math.floor(Math.log10(lo)); d <= Math.ceil(Math.log10(hi)); d++) {
+      for (var m = 1; m < 10; m++) {
+        var v = m * Math.pow(10, d);
+        if (v >= lo && v <= hi) out.push({ v: v, major: m === 1 });
+      }
+    }
+    return out;
+  }
+
+  function drawChart() {
+    var svg = document.getElementById('chart');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    // Clip everything to the plot rectangle. A TCC curve runs to hours at low current and to
+    // milliseconds at high, so at any fixed axis range part of it is always off the paper. Without
+    // this the curve draws straight through the axis labels and out of the viewBox, which a
+    // structural check caught here before a human ever looked at it.
+    var defs = el('defs', {});
+    var cp = el('clipPath', { id: 'plotclip' });
+    cp.appendChild(el('rect', { x: L, y: T, width: IW, height: IH }));
+    defs.appendChild(cp);
+    svg.appendChild(defs);
+
+    // Grid. Every decade line plus its minor divisions, because reading a TCC between the lines is
+    // the whole skill and a decade-only grid makes that impossible.
+    decades(I0, I1).forEach(function (t) {
+      svg.appendChild(el('line', { x1: xOf(t.v), x2: xOf(t.v), y1: T, y2: T + IH, class: 'gl' + (t.major ? ' maj' : '') }));
+      if (t.major) svg.appendChild(el('text', { x: xOf(t.v), y: T + IH + 15, class: 'axlabel', 'text-anchor': 'middle' },
+        t.v >= 1000 ? (t.v / 1000) + 'k' : String(t.v)));
+    });
+    decades(T0, T1).forEach(function (t) {
+      svg.appendChild(el('line', { x1: L, x2: L + IW, y1: yOf(t.v), y2: yOf(t.v), class: 'gl' + (t.major ? ' maj' : '') }));
+      if (t.major) svg.appendChild(el('text', { x: L - 7, y: yOf(t.v) + 3.5, class: 'axlabel', 'text-anchor': 'end' },
+        t.v >= 1 ? String(t.v) : String(t.v)));
+    });
+    svg.appendChild(el('text', { x: L + IW / 2, y: H - 8, class: 'axlabel', 'text-anchor': 'middle' }, 'Current (A)'));
+    svg.appendChild(el('text', { x: 12, y: T + IH / 2, class: 'axlabel', 'text-anchor': 'middle',
+      transform: 'rotate(-90 12 ' + (T + IH / 2) + ')' }, 'Time (s)'));
+
+    // The customary 0.3-0.4 s band, drawn as CONTEXT. See the card copy and engine.js: this is a
+    // cited rule of thumb, not a threshold, and nothing is compared against it.
+    var cti = TCC.CUSTOMARY_CTI;
+    svg.appendChild(el('rect', {
+      x: L, y: yOf(cti.high), width: IW, height: Math.abs(yOf(cti.low) - yOf(cti.high)),
+      fill: 'currentColor', opacity: 0.07
+    }));
+    // Left-anchored and below the band, because that corner is the one region of a TCC that is always
+    // empty: no curve exists to the left of its own pickup. Right-anchored, this label sat straight on
+    // top of the downstream curve's flat tail, which is exactly where a reader looks.
+    svg.appendChild(el('text', { x: L + 6, y: yOf(cti.low) + 13, class: 'axlabel', 'text-anchor': 'start' },
+      'customary interval, ' + cti.low + ' to ' + cti.high + ' s (a rule of thumb, not a limit)'));
+
+    var plot = el('g', { 'clip-path': 'url(#plotclip)' });
+    svg.appendChild(plot);
+
+    [['down', 'down'], ['up', 'up']].forEach(function (pair) {
+      var d = state[pair[0]];
+      var pts = TCC.curvePoints(d, I0, I1, 420);
+      if (!pts.length) return;
+      var path = pts.map(function (p, i) { return (i ? 'L' : 'M') + xOf(p.current).toFixed(2) + ' ' + yOf(p.seconds).toFixed(2); }).join(' ');
+      plot.appendChild(el('path', { d: path, fill: 'none', stroke: 'var(--' + pair[1] + ')', 'stroke-width': 2.1 }));
+      // The pickup asymptote: the curve goes vertical here and never trips to the left of it.
+      plot.appendChild(el('line', {
+        x1: xOf(d.pickup), x2: xOf(d.pickup), y1: T, y2: T + IH,
+        stroke: 'var(--' + pair[1] + ')', 'stroke-width': 1, 'stroke-dasharray': '3 4', opacity: 0.5
+      }));
+    });
+
+    // Crossings. This is the one finding the tool reports, and it is reported because the method is
+    // sourced and needs no invented number: two curves either cross or they do not.
+    TCC.overlaps(state.down, state.up, I0, I1).forEach(function (c) {
+      var t = TCC.tripTime(state.down, c);
+      if (!isFinite(t) || t > T1) return;
+      plot.appendChild(el('circle', { cx: xOf(c), cy: yOf(t), r: 4.5, fill: 'none', stroke: 'var(--hot)', 'stroke-width': 2 }));
+    });
+
+    // The fault current marker.
+    var fx = xOf(state.fault);
+    plot.appendChild(el('line', { x1: fx, x2: fx, y1: T, y2: T + IH, stroke: 'var(--ink)', 'stroke-width': 1, opacity: 0.45 }));
+    [['down', 'down'], ['up', 'up']].forEach(function (pair) {
+      var t = TCC.tripTime(state[pair[0]], state.fault);
+      if (isFinite(t) && t >= T0 && t <= T1) {
+        plot.appendChild(el('circle', { cx: fx, cy: yOf(t), r: 3.6, fill: 'var(--' + pair[1] + ')' }));
+      }
+    });
+  }
+
+  function deviceUI(key, title, colorVar) {
+    var d = state[key];
+    var host = document.getElementById('dev-' + key);
+    host.innerHTML = '';
+
+    var name = document.createElement('div');
+    name.className = 'devname';
+    var sw = document.createElement('span');
+    sw.className = 'swatch';
+    sw.style.background = 'var(--' + colorVar + ')';
+    name.appendChild(sw);
+    name.appendChild(document.createTextNode(title));
+    host.appendChild(name);
+
+    var lbl = document.createElement('label');
+    lbl.textContent = 'Curve shape';
+    lbl.setAttribute('for', key + '-shape');
+    host.appendChild(lbl);
+
+    var sel = document.createElement('select');
+    sel.id = key + '-shape';
+    Curves.shapeIds(FAM).forEach(function (id) {
+      var o = document.createElement('option');
+      o.value = id;
+      o.textContent = Curves.shape(FAM, id).label;
+      if (id === d.shape) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', function () { d.shape = sel.value; render(); });
+    host.appendChild(sel);
+
+    var row = document.createElement('div');
+    row.className = 'row2';
+    [['pickup', 'Pickup (A)', 1, 1], ['tdm', 'TDM', 0.05, 0.01]].forEach(function (f) {
+      var box = document.createElement('div');
+      var l = document.createElement('label');
+      l.textContent = f[1];
+      l.setAttribute('for', key + '-' + f[0]);
+      var inp = document.createElement('input');
+      inp.type = 'number';
+      inp.id = key + '-' + f[0];
+      inp.min = f[2];
+      inp.step = f[3];
+      inp.value = d[f[0]];
+      inp.addEventListener('input', function () {
+        var v = parseFloat(inp.value);
+        if (isFinite(v) && v > 0) { d[f[0]] = v; render(); }
+      });
+      box.appendChild(l);
+      box.appendChild(inp);
+      row.appendChild(box);
+    });
+    host.appendChild(row);
+  }
+
+  function render() {
+    drawChart();
+
+    var r = TCC.interval(state.down, state.up, state.fault);
+    document.getElementById('ival').textContent = r.bothTrip ? fmt(r.seconds) : 'n/a';
+    document.getElementById('ibreak').textContent =
+      'downstream ' + fmt(r.downstream) + ' · upstream ' + fmt(r.upstream);
+
+    var f = document.getElementById('finding');
+    var crossings = TCC.overlaps(state.down, state.up, I0, I1);
+    if (crossings.length) {
+      f.className = 'finding';
+      f.textContent = 'Curves cross at ' + crossings.map(function (c) { return Math.round(c) + ' A'; }).join(', ') +
+        '. TM 5-811-14 para 4-2c(7) says to select settings that "ensure no overlapping of curves".';
+    } else if (r.bothTrip && r.seconds < 0) {
+      f.className = 'finding';
+      f.textContent = 'The upstream device operates first at this current.';
+    } else {
+      f.className = 'finding quiet';
+      f.textContent = 'The curves do not cross over ' + I0 + ' A to ' + (I1 / 1000) + ' kA.';
+    }
+
+    var cti = TCC.CUSTOMARY_CTI;
+    document.getElementById('ctinote').textContent =
+      'The ' + cti.low + ' to ' + cti.high + ' s band is cited from ' + cti.cite +
+      '. Its source says the interval is "' + cti.wording + '" that much, for ' + cti.appliesTo +
+      '. It is context, not a threshold: nothing here is compared against it.';
+
+    var f2 = Curves.family(FAM);
+    document.getElementById('figsrc').textContent =
+      f2.vendor + ' ' + f2.device + ' · ' + f2.cite + ' · curves computed from the published equation';
+  }
+
+  // The proof table. Computed live so the page cannot drift from the engine the gate checks.
+  function proof() {
+    var d = { family: FAM, shape: 'extremely-inverse', tdm: 2, pickup: 100 };
+    var t = TCC.tripTime(d, 500);
+    document.getElementById('p-prose').innerHTML = '<span class="ok">' + t.toFixed(2) + ' s</span>';
+    document.getElementById('p-table').innerHTML = '<span class="ok">' + t.toFixed(3) + ' s</span>';
+    document.getElementById('p-eq').innerHTML = '<span class="ok">' + t.toFixed(4) + ' s</span>';
+  }
+
+  document.getElementById('fault').addEventListener('input', function (e) {
+    var v = parseFloat(e.target.value);
+    if (isFinite(v) && v > 0) { state.fault = v; render(); }
+  });
+
+  deviceUI('down', 'Downstream (feeder)', 'down');
+  deviceUI('up', 'Upstream (main)', 'up');
+  proof();
+  render();
+}());
+</script>
+</body>
+</html>
