@@ -1,0 +1,16 @@
+# Mutants for 01. Run: ./tools/mutate.sh projects/01-power-chain
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the engine claims to have. Every one of these MUST make the suite go
+# red. A survivor means that behaviour is either dead code or untested, and both are findings.
+#
+# This list is why the fault analysis got cut and why the one-way bus tie got caught: both showed up
+# here as survivors before they showed up anywhere else.
+
+build/engine.js | s/if (removed\[id\]) return false;//                                  | removals do nothing (the core of the whole model)
+build/engine.js | s/if (opts.requireProtected && n.type === 'bypass') return false;//    | a bypass counts as protected power (kills the WP75 p.3 distinction)
+build/engine.js | s/if (e.bidirectional) adj\[e.to\].push(e.from);//                     | bus ties conduct one way only (the real bug this caught)
+build/engine.js | s/return n.type !== 'load';/return true;/                              | loads are treated as maintainable components
+build/engine.js | s/dropped.length ? 'drop' : (unprotected.length ? 'unprotected' : 'ok')/'ok'/ | every removal is always fine
+build/engine.js | s/if (SOURCE_TYPES\[n.type\] && usable(n.id))/if (false)/              | nothing is ever energized
