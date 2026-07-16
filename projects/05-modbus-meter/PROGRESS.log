@@ -5,10 +5,10 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
-    learn    todo
-    build    todo
-    verify   todo
+    source   done
+    learn    done
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -18,3 +18,68 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+
+2026-07-16  source done. The primary is unusually strong for this repo: the MODBUS Application
+            Protocol Specification V1.1b3 is free, needs no login, and is served by the publisher
+            (modbus.org) itself. It publishes worked examples IN LITERAL HEX BYTES, per function
+            code, so the answer key is the wire.
+            Two independent readers each fetched the publisher's own PDF (sha256 f80d0d71...,
+            932,519 bytes), each rendered the pages at 3x, and read the tables as images. They agreed
+            on every byte of all five examples (pattern 12).
+            ⚠ INSTRUMENT NOTE: `curl -sIL` returns 404 on every real modbus.org PDF URL. The server
+            404s on HEAD and serves 200 application/pdf on GET for the SAME url. Both readers hit it
+            independently. A HEAD based link check concludes the whole spec library is dead.
+
+2026-07-16  learn done, and the finding is a quote rather than an opinion: MODBUS TCP IS A SERIAL
+            PROTOCOL WEARING A TCP HEADER. The PDU is capped at 253 bytes because of "the size
+            constraint inherited from the first MODBUS implementation on Serial Line network (max.
+            RS485 ADU = 256 bytes)" (APP 4.1 p5), and MBAP spends one of its four fields on a Unit
+            Identifier defined as "Identification of a remote slave connected on a serial line or on
+            other buses" (TCP 3.1.3 p5).
+            This route matters: RS-232, RS-485 and HSMS were all checked for a project of their own
+            and ALL SIX relevant standards are paywalled (TIA-232-F $165, TIA-485-A $99, SEMI E37
+            $380; $1,324 for the set, no free normative access, SEMI's abstracts state no normative
+            content). Rule 9 forbids claiming conformance to an unread standard, so none of them can
+            anchor a verified project. RS-485's fingerprint is reachable anyway, for free, because
+            Modbus documents it ON ITSELF.
+            Also settled: TIA-485-A would not even answer a biasing question. Its own published scope
+            says it "does not specify other characteristics, such as signal quality, timing,
+            protocol, pin assignments".
+
+2026-07-16  build + verify done. 79 checks, 31 mutants, all dead, gate green.
+            Built: spec.js (published constants, each with its page + the five frame answer key),
+            engine.js (CRC, PDU encode/decode, published validation order, RTU and MBAP transports,
+            the refusal), verify/verify.js, hand rolled UI with no dependencies.
+
+            THE PRECISE CLAIM, because the sloppy version is FALSE and shipping it would have been an
+            overclaimed gap of the same family as the plan's old "zero hours" scorecard:
+              ❌ "Modbus does not define byte order."  APP 4.2 p5 defines it explicitly, big endian.
+              ✅ Modbus defines byte order WITHIN a register and defines NO data type wider than a
+                 register, so there is no published word order to follow. Measured across all three
+                 specs, 265,402 chars, controls firing 176 to 538 times: float 0, floating 0,
+                 ieee 754 0, 32-bit 0, word order 0, byte order 0, 40001 0, 4x 0.
+            ⇒ Section F: decodeWide() throws without a named vendor profile, and VENDOR_PROFILES is
+            EMPTY on purpose. Same law as 03's "there is no THE ATS", reached from a third direction.
+            Four mutants break no calculation at all and only make the tool overclaim. All die.
+
+            🔴 A UI BUG NO SUITE COULD SEE, AND THE SECOND TIME THIS REPO HAS HIT THIS CLASS.
+            The Read Coils REQUEST and RESPONSE are BOTH five bytes, so a length based label guesser
+            put the request's field names on the published response: CD 6B 05 rendered as an address
+            and a quantity when APP 6.1 p12 calls them a byte count and coil status. Every byte was
+            correct. Nothing threw, nothing overflowed, the node suite was green AND the browser
+            structural check was green, because both compare BYTES and this was a lie told in WORDS,
+            on a tool built to teach which byte is which. Only an eye caught it, exactly like 03's
+            emergency lane reading "failed" at t=0. fieldLabels() now lives in engine.js, REQUIRES a
+            direction rather than guessing it, and six checks plus two mutants pin it.
+
+            GAP, recorded rather than papered over: the CRC algorithm is NOT verified against a
+            published message to CRC pair. The procedure (preload FFFF, polynomial 0xA001) and the
+            byte order (Fig 30: 0x1241 goes out 41 12) are published and asserted; a worked
+            message to CRC example was not found. Deliberately NOT closed with a value from a
+            tutorial (pattern 20). The fix when someone has budget: SERIAL pp40-42 publish a
+            reference C implementation with two 256 entry tables. Transcribe them AT THE PUBLISHER
+            and check the bitwise procedure reproduces all 512 values. That is 02's shape exactly.
+
+            SCOPE, stated because the slug oversells it: NO METER REGISTER MAP IS SOURCED. The spec
+            defines none, because a meter's map is its vendor's. This ships the FRAME layer only.
+            Naming the project "modbus-meter" does not entitle it to invent a meter.

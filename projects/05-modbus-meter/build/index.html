@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modbus frame codec</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #fff; --ink: #14181f; --muted: #5c6673; --line: #d7dce3;
+    --live: #1a6fd4; --dead: #b9c0c9; --hot: #c0392b; --warn: #b3690f; --good: #17794a;
+    --accent: #0f2f5e; --fossil: #7d3fb3; --grid: #e3e7ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1a1f27; --ink: #e8ecf1; --muted: #98a3b3; --line: #2c343f;
+      --live: #4a9eff; --dead: #3a424e; --hot: #ff6b5b; --warn: #e0a03c; --good: #3ecf8e;
+      --accent: #9dc4ff; --fossil: #c08cf0; --grid: #222932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .banner {
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 14px; font-size: 13.5px;
+  }
+  .banner strong { color: var(--warn); }
+  .thesis {
+    background: color-mix(in srgb, var(--fossil) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--fossil) 40%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 18px; font-size: 13.5px;
+  }
+  .thesis strong { color: var(--fossil); }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card + .card { margin-top: 14px; }
+  h2 { font-size: 14px; margin: 0 0 8px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  select, input[type=number], input[type=text] {
+    font: inherit; font-size: 13px; width: 100%; padding: 5px 7px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  button {
+    font: inherit; font-size: 13px; padding: 6px 11px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); margin-top: 10px;
+  }
+  button:hover { border-color: var(--live); color: var(--accent); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .cite { font-size: 11.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 6px; }
+  .cite em { color: var(--ink); font-style: normal; }
+
+  /* the frame strip */
+  .frame { margin: 6px 0 2px; overflow-x: auto; padding-bottom: 4px; }
+  .bytes { display: flex; gap: 3px; min-width: min-content; }
+  .b {
+    min-width: 38px; text-align: center; border-radius: 5px; padding: 4px 2px 3px;
+    border: 1px solid var(--line); background: var(--bg);
+    font: 600 13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .b small { display: block; font: 400 9px/1.25 -apple-system, sans-serif; color: var(--muted); margin-top: 2px; }
+  .b.pdu { border-color: var(--live); background: color-mix(in srgb, var(--live) 14%, transparent); }
+  .b.fossil { border-color: var(--fossil); background: color-mix(in srgb, var(--fossil) 18%, transparent); }
+  .b.crc { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+  .flabel { font-size: 11.5px; color: var(--muted); margin: 10px 0 2px; font-weight: 600; letter-spacing: .03em; }
+  .flabel span { font-weight: 400; }
+  .match {
+    font-size: 12.5px; padding: 7px 10px; border-radius: 6px; margin-top: 8px;
+    background: color-mix(in srgb, var(--good) 13%, transparent); color: var(--good);
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .refusal {
+    font-size: 13px; padding: 10px 12px; border-radius: 7px; margin-top: 8px;
+    background: color-mix(in srgb, var(--hot) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--hot) 35%, transparent);
+    color: var(--ink); white-space: pre-wrap;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; line-height: 1.5;
+  }
+  .fossilrow { font-size: 12.5px; margin: 9px 0; padding-left: 10px; border-left: 2px solid var(--fossil); }
+  .fossilrow b { color: var(--fossil); font-weight: 600; }
+  .fossilrow q { color: var(--muted); display: block; margin-top: 2px; font-size: 11.5px; quotes: none; }
+  a { color: var(--live); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Modbus frame codec</h1>
+<p class="sub">
+  Build a Modbus PDU, watch it go out over serial and over TCP, and see which parts of the Ethernet
+  frame are fossils of an RS-485 bus. Every byte here reproduces a worked example published by the
+  Modbus Organization.
+</p>
+
+<div class="banner">
+  <strong>Educational. Not for field use.</strong> This tool reproduces published worked examples so
+  they can be explored interactively. It is not a substitute for the manufacturer's instructions or a
+  qualified person on site.
+</div>
+
+<div class="thesis">
+  <strong>Modbus TCP is a serial protocol wearing a TCP header.</strong>
+  That is not an opinion, it is two quotes. The PDU is capped at 253 bytes because
+  <em>"the size constraint inherited from the first MODBUS implementation on Serial Line network
+  (max. RS485 ADU = 256 bytes)"</em> (Application Protocol V1.1b3, 4.1, p5), and the MBAP header
+  spends one of its four fields on a Unit Identifier defined as <em>"Identification of a remote slave
+  connected on a serial line or on other buses"</em> (Messaging on TCP/IP V1.0b, 3.1.3, p5).
+  Both documents are free at <a href="https://www.modbus.org/modbus-specifications">modbus.org</a>.
+</div>
+
+<div class="cols">
+  <div>
+    <div class="card">
+      <h2>The frame</h2>
+      <div id="frames"></div>
+    </div>
+
+    <div class="card">
+      <h2>The serial fossils in a TCP frame</h2>
+      <div id="fossils"></div>
+    </div>
+
+    <div class="card">
+      <h2>Decode the register data</h2>
+      <div id="decode"></div>
+      <p class="note" id="decodenote"></p>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Published example</h2>
+      <label for="preset">Worked example from the specification</label>
+      <select id="preset"></select>
+      <p class="cite" id="presetcite"></p>
+      <div class="match" id="verdict"></div>
+    </div>
+
+    <div class="card">
+      <h2>Transport</h2>
+      <div class="row2">
+        <div>
+          <label for="addr">Slave address / unit id</label>
+          <input type="number" id="addr" min="0" max="255" value="17">
+        </div>
+        <div>
+          <label for="txn">Transaction id (TCP)</label>
+          <input type="number" id="txn" min="0" max="65535" value="1">
+        </div>
+      </div>
+      <p class="note">
+        The same value fills the RTU slave address and the MBAP unit id, because the TCP guide says
+        the second replaced the first.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>What this tool refuses to do</h2>
+      <p class="note" style="margin-top:0">
+        It will not decode a 32 bit float across two registers without a named vendor profile, and no
+        vendor profile ships, because no meter manual has been sourced and read yet.
+      </p>
+      <p class="note">
+        The specification defines byte order <em>within</em> a register (big endian, 4.2, p5) and
+        defines no data type wider than a register at all, so there is no published word order to
+        follow. Word order is a vendor convention. Filling one in from a tutorial would be a silent
+        overclaim in a decoder someone trusts against real gear.
+      </p>
+      <button id="try32">Try to decode 32 bits anyway</button>
+      <div class="refusal" id="refusal" hidden></div>
+    </div>
+
+    <div class="card">
+      <h2>Sources</h2>
+      <p class="cite">
+        <em>MODBUS Application Protocol Specification V1.1b3</em>, April 26 2012.<br>
+        <em>MODBUS over Serial Line Specification and Implementation Guide V1.02</em>, Dec 20 2006.<br>
+        <em>MODBUS Messaging on TCP/IP Implementation Guide V1.0b</em>, Oct 24 2006.<br>
+        All three published by the Modbus Organization, free, no login, read at the publisher.
+      </p>
+      <p class="note">
+        The specifications are cited and never redistributed. See <code>sources/SOURCES.md</code> for
+        the audit, the licence position, and the gaps.
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="spec.js"></script>
+<script>window.MODBUS_SPEC = (function () { return {
+  LIMITS, FN, QTY_LIMITS, COIL_ON, COIL_OFF, EXCEPTION_OFFSET, EXCEPTION,
+  VALIDATION_ORDER, ENDIAN_EXAMPLE, CRC, MBAP, PUBLISHED, VENDOR_PROFILES,
+}; })();</script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const S = window.MODBUS_SPEC, E = window.MODBUS_ENGINE;
+  const $ = (id) => document.getElementById(id);
+  const hx = (b) => b.toString(16).toUpperCase().padStart(2, '0');
+  const hexs = (a) => a.map(hx).join(' ');
+
+  function byteEl(v, label, cls) {
+    const d = document.createElement('div');
+    d.className = 'b' + (cls ? ' ' + cls : '');
+    d.innerHTML = hx(v) + (label ? '<small>' + label + '</small>' : '');
+    return d;
+  }
+
+  function strip(items) {
+    const f = document.createElement('div'); f.className = 'frame';
+    const row = document.createElement('div'); row.className = 'bytes';
+    for (const it of items) row.appendChild(byteEl(it.v, it.l, it.c));
+    f.appendChild(row); return f;
+  }
+
+  function render() {
+    const ex = S.PUBLISHED[+$('preset').value];
+    const addr = Math.max(0, Math.min(255, +$('addr').value || 0));
+    const txn = Math.max(0, Math.min(65535, +$('txn').value || 0));
+    const pdu = ex.request;
+    const labels = E.fieldLabels(pdu, 'request');
+
+    /* ---- the PDU, identical on both transports ---- */
+    const out = $('frames'); out.innerHTML = '';
+
+    const h0 = document.createElement('div'); h0.className = 'flabel';
+    h0.innerHTML = 'PDU <span>&mdash; ' + pdu.length + ' bytes. The specification defines this once, and both transports wrap it.</span>';
+    out.appendChild(h0);
+    out.appendChild(strip(pdu.map((v, i) => ({ v, l: labels[i], c: 'pdu' }))));
+
+    /* ---- RTU ---- */
+    const rtu = E.wrapRTU(addr, pdu);
+    const h1 = document.createElement('div'); h1.className = 'flabel';
+    h1.innerHTML = 'RTU over serial <span>&mdash; ' + rtu.length + ' bytes. Address + PDU + CRC.</span>';
+    out.appendChild(h1);
+    out.appendChild(strip([
+      { v: rtu[0], l: 'Slave addr', c: 'fossil' },
+      ...pdu.map((v, i) => ({ v, l: labels[i], c: 'pdu' })),
+      { v: rtu[rtu.length - 2], l: 'CRC Lo', c: 'crc' },
+      { v: rtu[rtu.length - 1], l: 'CRC Hi', c: 'crc' },
+    ]));
+    const c1 = document.createElement('p'); c1.className = 'cite';
+    c1.innerHTML = 'The CRC goes out <em>low byte first</em>, which inverts the protocol\'s own big endian rule. ' +
+      'Serial V1.02, 6.2.2, p39: <em>"the low-order byte will be transmitted first, followed by the high-order byte."</em> ' +
+      'Figure 30 works it: CRC 0x1241 is placed 41 then 12. Compare 4.2, p5, where data 0x1234 goes out 12 then 34.';
+    out.appendChild(c1);
+
+    /* ---- TCP ---- */
+    const tcp = E.wrapTCP({ transactionId: txn, unitId: addr, pdu });
+    const p = E.parseTCP(tcp);
+    const h2 = document.createElement('div'); h2.className = 'flabel';
+    h2.innerHTML = 'MBAP over TCP <span>&mdash; ' + tcp.length + ' bytes. 7 byte header + PDU. No CRC: Ethernet already has one.</span>';
+    out.appendChild(h2);
+    out.appendChild(strip([
+      { v: tcp[0], l: 'Txn Hi' }, { v: tcp[1], l: 'Txn Lo' },
+      { v: tcp[2], l: 'Proto Hi' }, { v: tcp[3], l: 'Proto Lo' },
+      { v: tcp[4], l: 'Len Hi' }, { v: tcp[5], l: 'Len Lo' },
+      { v: tcp[6], l: 'Unit id', c: 'fossil' },
+      ...pdu.map((v, i) => ({ v, l: labels[i], c: 'pdu' })),
+    ]));
+    const c2 = document.createElement('p'); c2.className = 'cite';
+    c2.innerHTML = 'Length reads <em>' + p.length + '</em>, not ' + tcp.length + ' and not ' + pdu.length +
+      '. TCP V1.0b, 3.1.3, p5: <em>"The length field is a byte count of the following fields, including the ' +
+      'Unit Identifier and data fields."</em> So it is 1 + the PDU. Getting this wrong desynchronises a stream ' +
+      'while looking perfectly reasonable in a debugger.';
+    out.appendChild(c2);
+
+    /* ---- does it match the book ---- */
+    const v = $('verdict');
+    const ok = hexs(E.parseTCP(tcp).pdu) === hexs(ex.request);
+    v.textContent = ok
+      ? '✓ PDU matches the published bytes:\n  ' + hexs(ex.request)
+      : '✗ does not match the book';
+
+    $('presetcite').innerHTML = '<em>' + ex.doc + '</em>, section ' + ex.section + ', page ' + ex.page +
+      '.<br>' + ex.caption.charAt(0).toUpperCase() + ex.caption.slice(1) + '.' +
+      '<br>Published response: <em>' + hexs(ex.response) + '</em>';
+
+    /* ---- the fossils ---- */
+    const cmp = E.compareTransports({ address: addr, transactionId: txn, pdu });
+    const fo = $('fossils'); fo.innerHTML = '';
+    for (const f of cmp.fossils) {
+      const d = document.createElement('div'); d.className = 'fossilrow';
+      d.innerHTML = '<b>' + f.what + '</b><q>' + f.why + '</q>';
+      fo.appendChild(d);
+    }
+    const oh = document.createElement('p'); oh.className = 'note';
+    oh.innerHTML = 'Overhead on this frame: RTU adds ' + cmp.rtu.overhead + ' bytes, TCP adds ' +
+      cmp.tcp.overhead + '. Both carry the same ' + pdu.length + ' byte PDU, and both cap it at ' +
+      S.LIMITS.PDU_MAX + ' bytes for the serial bus\'s reason.';
+    fo.appendChild(oh);
+
+    /* ---- decode the response data ---- */
+    const dec = $('decode'); dec.innerHTML = '';
+    const rl = E.fieldLabels(ex.response, 'response');
+    const rh = document.createElement('div'); rh.className = 'flabel';
+    rh.innerHTML = 'Published response PDU <span>&mdash; ' + ex.response.length + ' bytes</span>';
+    dec.appendChild(rh);
+    dec.appendChild(strip(ex.response.map((v2, i) => ({ v: v2, l: rl[i], c: E.isException(ex.response) ? 'crc' : 'pdu' }))));
+
+    const d = E.decodeResponse(ex.response);
+    let txt = '';
+    if (d.exception) {
+      txt = 'Exception response. Function 0x' + hx(d.fn) + ' + 0x80 = 0x' + hx(ex.response[0]) +
+            ', exception code ' + hx(d.exceptionCode) + ' (illegal data address). ' +
+            'APP 7, p47: the server "sets the MSB of the function code to 1".';
+    } else if (d.registers) {
+      txt = 'Registers decode big endian, most significant byte first (4.2, p5): ' +
+            d.registers.map((r, i) => '[' + i + '] = ' + r).join(', ') +
+            '. The page states these in decimal too, and they agree.';
+    } else if (d.statusBytes) {
+      txt = 'Coil status bytes ' + hexs(d.statusBytes) + '. APP 6.1, p12: "The status of outputs 27-20 is ' +
+            'shown as the byte value CD hex, or binary 1100 1101. Output 27 is the MSB of this byte, and ' +
+            'output 20 is the LSB."';
+    } else {
+      txt = 'Echo of the request. APP 6.5, p18: the response to Write Single Coil repeats the request.';
+    }
+    $('decodenote').textContent = txt;
+  }
+
+  /* the refusal, live */
+  $('try32').addEventListener('click', () => {
+    const box = $('refusal');
+    try {
+      const val = E.decodeWide([0x00, 0x00, 0x41, 0x20], undefined);
+      box.textContent = 'Returned ' + val + '. That should not have happened.';
+    } catch (e) {
+      box.textContent = e.message;
+    }
+    box.hidden = false;
+  });
+
+  const sel = $('preset');
+  S.PUBLISHED.forEach((ex, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = ex.id + '  (0x' + hx(ex.request[0] & 0x7F) + ', p' + ex.page + ')';
+    sel.appendChild(o);
+  });
+  ['preset', 'addr', 'txn'].forEach((id) => $(id).addEventListener('input', render));
+  render();
+})();
+</script>
+</body>
+</html>

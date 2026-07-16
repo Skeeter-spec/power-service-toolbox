@@ -1,0 +1,139 @@
+# Mutants for 05. Run: ./tools/mutate.sh projects/05-modbus-meter
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one MUST make the suite go red. A
+# survivor is a finding and it is one of three things: dead code, a coverage hole, or an EQUIVALENT
+# mutant that no input can distinguish (pattern 14). Prove equivalence before claiming it.
+#
+# ⚠ RUNNER CONSTRAINT: mutants.txt is parsed with `IFS='|' read`, so A SED EXPRESSION MAY NOT CONTAIN
+# A PIPE. It truncates silently at the first one and the result is invalid sed, which writes a ZERO
+# BYTE FILE that kills every suite and scores a kill it never earned. Express "any one of these
+# suffices" by dropping each term in turn, and write && as \&\& in the replacement.
+#
+# 05'S MUTANTS COME IN THREE FLAVOURS, AND THE THIRD IS THE POINT.
+#
+#   1. Break the wire format. The source publishes literal bytes, so these are one character edits
+#      that make a frame stop matching the book. Cheap, and they prove section A is real.
+#   2. Break a published rule the code enforces (a limit, the length field, the branch order).
+#   3. 🔴 BREAK NOTHING, AND ONLY MAKE THE TOOL CLAIM MORE THAN ITS SOURCE. Section F's mutants
+#      compute nothing wrong. They add a word order the specification does not publish, or soften the
+#      refusal's wording into an overclaim. Every calculation still returns the same value. This is
+#      the failure this repo exists to avoid, and it is invisible to every ordinary test.
+
+# ---------------------------------------------------------------- #
+# 1. THE WIRE FORMAT. APP V1.1b3 pages 5, 12, 15, 18, 30-31, 47.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/return \[(v >>> 8) \& 0xFF, v \& 0xFF\];/return \[v \& 0xFF, (v >>> 8) \& 0xFF\];/ | big endian inverted: APP 4.2 p5 says 0x1234 goes out 12 then 34, this sends 34 then 12
+build/engine.js | s/return ((hi \& 0xFF) << 8) . (lo \& 0xFF);/return ((lo \& 0xFF) << 8) + (hi \& 0xFF);/ | register decode inverted: 02 2B would read as 11010, not the published 555 (APP 6.3 p15)
+build/spec.js | s/const EXCEPTION_OFFSET = 0x80;/const EXCEPTION_OFFSET = 0x40;/ | exception offset changed: APP 7 p47 says "exactly 80 hexadecimal higher", so 81 02 would become 41 02
+# The 0x10 response is the one shape people get wrong by guessing. APP 6.12 p30: "The normal response
+# returns the function code, starting address, and quantity of registers written." It does NOT echo
+# the written data. This mutant makes it echo, which is the intuitive and wrong answer.
+build/engine.js | s/];   \/\/ no data echoed/, ...p.registers.flatMap(u16ToBytes)];/ | 0x10 response echoes the register data, which APP 6.12 p30 does not do
+
+build/spec.js | s/const COIL_ON  = 0xFF00;/const COIL_ON  = 0x0001;/ | Write Single Coil ON value changed: APP 6.5 p17-18 publishes 0xFF00 and the p18 example depends on it
+
+# ---------------------------------------------------------------- #
+# 2. THE CRC. SERIAL V1.02 section 6.2.2 and Figure 30, p39/44.
+# ---------------------------------------------------------------- #
+
+# THE CRC BYTE ORDER MUTANT. This is the one that matters most in this section: it makes the CRC obey
+# the protocol's OWN big endian rule from APP 4.2, which is exactly why a person writes this bug.
+# SERIAL 6.2.2 p39: "the low-order byte will be transmitted first, followed by the high-order byte."
+build/engine.js | s/  return \[crc \& 0xFF, (crc >>> 8) \& 0xFF\];/  return \[(crc >>> 8) \& 0xFF, crc \& 0xFF\];/ | CRC placed high byte first, contradicting SERIAL Fig 30 (0x1241 must go out 41 12)
+
+build/spec.js | s/  PRELOAD: 0xFFFF,/  PRELOAD: 0x0000,/ | CRC preload changed from the published FFFF (SERIAL 6.2.2 p39 step 1)
+build/spec.js | s/  POLYNOMIAL: 0xA001,/  POLYNOMIAL: 0xA002,/ | CRC polynomial changed from the published 0xA001 (SERIAL 6.2.2 p39 step 4)
+build/engine.js | s/      if (crc \& 1) crc = (crc >>> 1) \^ S.CRC.POLYNOMIAL;/      if (crc \& 2) crc = (crc >>> 1) \^ S.CRC.POLYNOMIAL;/ | CRC examines the wrong bit: SERIAL 6.2.2 p39 says "The LSB is extracted and examined"
+build/engine.js | s/    crc \^= (b \& 0xFF);/    crc \^= 0;/ | CRC stops depending on the message, so every frame gets the same check value
+
+# ---------------------------------------------------------------- #
+# 3. THE SIZE LIMITS, WHICH ARE RS-485's FINGERPRINT ON A TCP FRAME. APP 4.1 p5.
+# ---------------------------------------------------------------- #
+
+build/spec.js | s/  PDU_MAX: 253,/  PDU_MAX: 254,/ | PDU cap changed: APP 4.1 p5 derives 253 as 256 minus address minus CRC, so the derivation check must break
+build/spec.js | s/  TCP_ADU_MAX: 260,/  TCP_ADU_MAX: 259,/ | TCP ADU cap changed: APP 4.1 p5 prints 253 + MBAP 7 = 260
+build/spec.js | s/  SERIAL_ADU_MAX: 256,/  SERIAL_ADU_MAX: 255,/ | serial ADU cap changed from the published 256, breaking the inherited derivation
+build/spec.js | s/  \[FN.READ_HOLDING\]:     { min: 0x0001, max: 0x007D },/  [FN.READ_HOLDING]:     { min: 0x0001, max: 0x007B },/ | read register limit conflated with the write limit: APP publishes 125 for 0x03 and 123 for 0x10, and they are not the same number
+build/spec.js | s/  \[FN.READ_COILS\]:       { min: 0x0001, max: 0x07D0 },/  [FN.READ_COILS]:       { min: 0x0001, max: 0x07B0 },/ | read coils limit conflated with write multiple coils: 2000 vs 1968
+
+# ---------------------------------------------------------------- #
+# 4. MBAP AND THE LENGTH FIELD. TCP V1.0b section 3.1.3, p5/46.
+# ---------------------------------------------------------------- #
+
+# THE OFF BY ONE. TCP 3.1.3 p5: "The length field is a byte count of the following fields, including
+# the Unit Identifier and data fields." Both mutants below are the two intuitive wrong answers, and
+# both desynchronise a real stream while looking perfectly reasonable in a debugger.
+build/engine.js | s/  const length = 1 . pdu.length;/  const length = pdu.length;/ | Length field counts only the PDU, forgetting the Unit Identifier the spec names explicitly
+build/engine.js | s/  const length = 1 . pdu.length;/  const length = 7 + pdu.length;/ | Length field counts the whole ADU instead of "the following fields"
+
+build/spec.js | s/  PROTOCOL_ID: 0x0000,/  PROTOCOL_ID: 0x0001,/ | Protocol Identifier changed: TCP 3.1.3 p5 says "0 = MODBUS protocol"
+build/spec.js | s/  MBAP_LEN: 7,/  MBAP_LEN: 8,/ | MBAP length changed: TCP 3.1.3 p5 says "The header is 7 bytes long"
+build/spec.js | s/  PORT: 502,/  PORT: 503,/ | registered port changed from the published 502 (TCP 4.2 p6)
+build/engine.js | s/    lengthOk: length === 1 . (adu.length - S.LIMITS.MBAP_LEN),/    lengthOk: true,/ | the length consistency check is disabled, so a desynchronised stream reports healthy
+
+# ---------------------------------------------------------------- #
+# 5. THE PUBLISHED VALIDATION ORDER. APP Figure 11 p12 and Figure 22 p31.
+#
+# Both state diagrams branch: function code, then quantity (03), then address (02), then processing
+# (04). QUANTITY IS CHECKED BEFORE ADDRESS. This order is IN THE BOOK, so it is fair to mutate
+# (pattern 20: only mutate a boundary the source publishes).
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/    if (req.quantity < lim.min .. req.quantity > lim.max) return S.EXCEPTION.ILLEGAL_DATA_VALUE;/    if (req.quantity < lim.min) return S.EXCEPTION.ILLEGAL_DATA_VALUE;/ | upper quantity limit dropped, so an over range request falls through to the address branch and answers 02 where the published diagram answers 03
+build/engine.js | s/    if (req.byteCount !== req.quantity \* 2) return S.EXCEPTION.ILLEGAL_DATA_VALUE;/    if (false) return S.EXCEPTION.ILLEGAL_DATA_VALUE;/ | byte count consistency dropped: APP Fig 22 p31 puts "Byte Count == Quantity of Registers x 2" in the quantity branch
+build/engine.js | s/  if (start >= space .. start . span > space) return S.EXCEPTION.ILLEGAL_DATA_ADDRESS;/  if (start >= space) return S.EXCEPTION.ILLEGAL_DATA_ADDRESS;/ | the "Starting Address + Quantity == OK" half of the address branch dropped (APP Fig 11 p12), so a read running off the end of the device is permitted
+build/engine.js | s/  if (!Object.values(S.FN).includes(fn)) return S.EXCEPTION.ILLEGAL_FUNCTION;/  if (false) return S.EXCEPTION.ILLEGAL_FUNCTION;/ | unsupported function codes no longer answer 01 (APP Fig 11 p12)
+
+# ---------------------------------------------------------------- #
+# 6. 🔴 THE REFUSALS. THESE MUTANTS BREAK NO CALCULATION AT ALL.
+#
+# Every arithmetic check in sections A to E still passes under all four. They only make the tool
+# claim something its source does not publish. That is the entire product of this repo, and it is
+# why section F exists: nothing here is BROKEN, so no ordinary test would ever look.
+# ---------------------------------------------------------------- #
+
+# THE DANGEROUS ONE, AND IT IS NOT HYPOTHETICAL. Every Modbus tutorial on the internet publishes a
+# word order, and a future session will find one, think "this is just how it works", and add it in
+# good faith. The specification defines NO data type wider than one register (measured: float 0,
+# 32-bit 0, word order 0 across 265,402 characters, controls firing 176 to 538 times), so there is no
+# published word order to be right about. This mutant is that future session.
+build/spec.js | s/const VENDOR_PROFILES = {};/const VENDOR_PROFILES = { "big-endian-word-swap": { decode: function (b) { return 1.0; } } };/ | a word order the specification never publishes is added as a named profile, exactly as a well meaning future session would add it
+
+# The same overclaim reached from the engine instead of the data: make the refusal return a number.
+build/engine.js | s/    throw new Error(/    return NaN \&\& (/ | decodeWide stops refusing and returns a value, so a 32 bit read against a real meter silently produces a number nobody sourced
+
+# AND THE OPPOSITE ERROR, WHICH IS JUST AS REAL. Overclaiming the GAP is the same failure as the
+# plan's old "zero hours" scorecard: the specification DOES define byte order (APP 4.2 p5, big
+# endian, in as many words). Only word order is absent. A refusal that says the spec is silent on
+# byte order is confidently wrong in the flattering direction, and section F pins the precise claim.
+build/engine.js | s/`The Modbus specification defines byte order WITHIN a register (big endian, APP 4.2 p5) and ` ./`The Modbus specification does not define byte order at all, so ` + /  | the refusal is softened into an overclaimed gap, asserting a silence that APP 4.2 p5 contradicts
+build/spec.js | s/registerBits: 16,/registerBits: 32,/ | APP 4.2 worked example claimed at 32 bits when the published table says "16 - bits", making the spec appear to specify a width it never does
+
+# ---------------------------------------------------------------- #
+# DELIBERATELY NOT WRITTEN, AND THE REASONING IS THE PATTERN (see 03's pattern 20).
+#
+# There is no mutant on what a server should do at a quantity of EXACTLY 0x0000. APP Figure 11 shows
+# the branch as "0x0001 <= Quantity of Outputs <= 0x07D0", so zero is out of range and the engine
+# answers 03, which IS asserted. But the specification never works an example at exactly zero, and
+# the boundary at the TOP (2000, 125, 123) is the one it prints. Mutating the bottom boundary would
+# be fair; mutating what happens at a MALFORMED length, or at a PDU of zero bytes, would not: the
+# source says nothing, and killing such a mutant would force this suite to assert UNSOURCED
+# behaviour. That is how a suite starts inventing facts to keep itself green.
+#
+# There is likewise no mutant asserting a CRC value for a specific message. The Serial guide's
+# procedure and byte order are published and both are mutated above. A published message to CRC pair
+# was never found and rendered, so no fixture exists that is not invented. See verify.js's gap note.
+
+# ---------------------------------------------------------------- #
+# 7. THE FIELD LABELS. Promoted from a bug an eye caught (pattern 5).
+#
+# The first two are the ORIGINAL BUG, re-armed. Neither changes a single byte on the wire: they only
+# make the tool put the wrong word under a correct byte, on a tool whose whole job is teaching which
+# byte is which. That is the same family as section 6's overclaims, reached from the UI.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/  if (kind !== 'request' \&\& kind !== 'response') {/  if (false) {/ | fieldLabels stops requiring a direction, which is how it guessed wrong in the first place
+build/engine.js | s/      return \['Function', 'Byte count', ...Array.from({ length: pdu.length - 2 }, () => 'Coil status')\];/      return ['Function', 'Addr Hi', 'Addr Lo', 'Qty Hi', 'Qty Lo'];/ | THE ORIGINAL BUG, re-armed: a Read Coils response is labelled with the request's field names, so CD 6B 05 reads as an address and a quantity when APP 6.1 p12 calls them coil status
