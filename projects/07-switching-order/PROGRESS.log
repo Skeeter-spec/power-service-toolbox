@@ -5,7 +5,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
+    source   done
     learn    todo
     build    todo
     verify   todo
@@ -18,3 +18,96 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+
+2026-07-15  source wip. Hunting the primary: a published switching order or clearance procedure that
+            gives a circuit AND its own stated correct sequence, or that states the ORDERING RULES in
+            its own words (a stated rule is as checkable as a stated answer). Two independent workers
+            on the same target on purpose (pattern #12): agreement is evidence, disagreement is a
+            finding, and duplication is the only reason 02's wrong equations ever surfaced.
+            Unusually for this repo, the promising literature here is PUBLIC DOMAIN: OSHA 1910.147 and
+            1910.269, DOE handbooks, Reclamation FIST, Army/NAVFAC, BPA/WAPA/TVA switching manuals.
+            NFPA 70E and IEEE 3007.x are gated and copyrighted: cite by number, never use content.
+
+            🔴 THE PLAN AND THE HAND OFF ARE BOTH WRONG ABOUT WHAT THIS PROJECT COSTS, and the error is
+            worth keeping rather than quietly fixing. The plan sells the interlock: "07 plans switching
+            orders on 01's one line." The hand off went further and predicted 07 was MISPRICED at 7th,
+            "01's engine plus an ordering constraint... probably the cheapest remaining build."
+            CHECKED IT INSTEAD OF INHERITING IT. 01's model has ELEVEN node types: ats, bus, bypass,
+            generator, load, pdu, rack_ats, sts, tie, ups, utility. THERE IS NO BREAKER AND NO SWITCH
+            IN ANY OF THEM. 01/build/topologies.js says so on purpose: "Breakers ... are folded into
+            the edges rather than made into nodes ... A breaker level model would be a different and
+            larger piece of work."
+            A SWITCHING ORDER IS A SEQUENCE OF OPERATIONS ON BREAKERS AND SWITCHES. 01 removes NODES
+            (named equipment) and has no operable devices at all, so the one thing 07 exists to compute
+            is the one thing 01 cannot express. 07 needs a device level model. That is not a blocker,
+            it is a COST, and it was hidden inside a sentence that sounded like reuse.
+            WHAT SURVIVES: the hand off's OTHER argument for 07 is untouched and is the strong one.
+            This is the app where Keaton has real authority (LOTO certified, recertified every 6
+            months, 4 years in a live fab). That never depended on reusing 01.
+            Lesson, same shape as this repo's others: AN INTERLOCK CLAIMED IN A PLAN IS A HYPOTHESIS.
+            Open the other project's model and look before you price the build on it.
+
+2026-07-15  source DONE. Primary: BPA Operating Bulletin No. 2 / Accident Prevention Rule S-6,
+            "Switching and Clearance Procedure", Oct 1 2025, 86 pp, fetched from bpa.gov.
+            🟢 THIS IS THE BEST SOURCE IN THE REPO, on both axes at once, and it is worth naming why
+            rather than just celebrating. 01's WP75 and 02's GE 850 are both FREE BUT COPYRIGHTED, and
+            02's was read at a DISTRIBUTOR because GE's own copy is login walled. This one is read at
+            the PUBLISHER (curl, 200, no cross host redirect, BPA employee named as author in the
+            metadata, Word as creator ⇒ an original, not a re render) AND it is PUBLIC DOMAIN (federal
+            agency work, 17 USC 105). 07 is the first project that verifies against a document nobody
+            owns, fetched from the people who wrote it.
+            THE LICENCE WAS CHECKED, NOT ASSUMED, because 02 taught that A DOCUMENT'S LICENCE IS NOT
+            UNIFORM (TM 5-811-14 is public domain EXCEPT the asterisked paragraph reprinting IEEE 242,
+            which was the one paragraph 02 wanted). Searched all 86 pages for reprinted / permission /
+            copyright / ©: ELEVEN hits, ALL of them "permission" in the operational sense (permission
+            from the Dispatcher). Zero reprint notices. The licence here really is uniform.
+
+            WHAT IT PUBLISHES. A STATED RULE and its OWN WORKED EXAMPLE OF THAT RULE.
+            Rule, section IV.4.C, page label P-8, PDF p.12, verbatim: "PCB(s) shall be checked open
+            before operating isolating devices." A flat imperative. No arithmetic, no tolerance, no
+            convention: a sequence either honors it or it does not. THAT IS THE GATE.
+            Worked example, section X.2 Example 1, page label P-45, PDF p.49: the Central-East Columbia
+            No. 3 230 kV line is de-energized "by opening PCBs A-10 and A-3 by supervisory control",
+            and only THEN are the isolating disconnects operated and tagged. The document applies its
+            own rule to a named circuit with named devices. Same shape as 02's manual agreeing with
+            itself three ways.
+            The illustration is a DEVICE LEVEL one line, rendered at 3x and read as an image rather
+            than inferred from the text layer: PCB A-10 with a disconnect either side + ground switch
+            7233 at Central; PCB A-3 with a disconnect either side + ground switch 7243 at East
+            Columbia. ~10 operable devices, 2 terminals. That is what 07 encodes.
+            SECOND RULE, different publisher: 29 CFR 1910.269(n)(6), read at govinfo.gov. Attach the
+            GROUND END FIRST then the line end; remove the LINE END FIRST then the ground end. The
+            regulation states BOTH halves rather than saying "reverse", so both can be asserted.
+
+            METHOD: TWO WORKERS, OPPOSITE INSTRUCTIONS, SAME ANSWER. One was told to start at OSHA,
+            the other told explicitly NOT to and to start at utility switching manuals. They converged
+            on the same document, same rule, same page, same worked example, and both independently
+            found the same corroborator (Snohomish County PUD). Two different search paths landing on
+            one document is evidence ABOUT THE DOCUMENT; one worker finding it twice would not be.
+            Then everything the verify phase rests on was RE READ AT THE PUBLISHER by me, because a
+            worker's honest grade is a warning and not a fix. Both workers' quotes and page labels
+            survived exactly. Worker A's gaps section is the best this project has produced: it graded
+            its own PyMuPDF extractions TRACED and its WebFetch-pipeline reads only READ IN FULL, and
+            it flagged an unattributed cache artifact and REFUSED to rely on it.
+
+            🔴 THE CRUX FOR THE BUILD, from the gaps: BPA NEVER PRINTS A FILLED IN SWITCHING ORDER.
+            86 pages, no numbered "Step 1 / Step 2" order form filled in anywhere. Both workers found
+            this independently. So VERIFY ASSERTS THE RULE against a generated sequence, plus the prose
+            example's stated device order. IT CANNOT DIFF AGAINST A PUBLISHED STEP LIST, because no
+            step list is published. Do not let a future session claim otherwise.
+            Real negative finding, from reading both IN FULL: Reclamation FIST 1-1 and 1-2 contain NO
+            filled in worked switching order either. They reference an SPF form that carries the device
+            sequence and only ever show it blank.
+
+            TOOLING, worth keeping: WebFetch's summarizer REFUSED to quote public domain CFR verbatim
+            (citing a copyright policy that does not apply to federal regulations) and misreported the
+            FIST PDFs as corrupted when they are normal text layer PDFs. curl + PyMuPDF solved both.
+            And the CFR text layer interleaves the PRINTER'S PAGE FURNITURE INTO THE MIDDLE OF A
+            SENTENCE ("...before he or she VerDate Sep<11>2014 ... Jkt 262121 ... removes the ground-end
+            connection"), and hyphenates across line breaks ("em- ployees") so a literal search for the
+            paragraph heading finds NOTHING and a careless reader concludes the paragraph is absent.
+            Same family as 02's flattened fraction bar: THE TEXT LAYER IS NOT THE DOCUMENT.
+
+            NEXT: learn/build. Remember the interlock finding above — 01 has no breakers, so 07 traces
+            its OWN device level topology from the Example 1 illustration. That is the cost the plan
+            and the hand off both hid inside the word "reuse".
