@@ -9,8 +9,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     learn    done
     build    done
     verify   done
-    publish  todo
-    live     todo
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -131,3 +131,15 @@ contains finished, verified work.
             see that the band's label sat on top of the downstream curve; the screenshot could. And a
             getBoundingClientRect check on the clipped <g> reported the SAME box clipped or not, i.e.
             the MEASUREMENT could not see clipping at all: a green control that proved nothing.
+
+2026-07-15  publish + live DONE. Pushed (3 commits) and VERIFIED, not assumed:
+            - origin/main == local HEAD.
+            - raw.githubusercontent serves build/engine.js and verify/published.js: 200.
+            - mission-control/projects.csv: 404. The tracker still never ships.
+            - Pages went 404 -> 200 as the build completed, so the 200 is the real thing.
+            🔑 THE STRONGEST CHECK, and it beats a screenshot: the LIVE SITE'S OWN BYTES were downloaded
+            and the verify suite was run AGAINST THE DOWNLOAD. sha256 of served engine.js and curves.js
+            match local exactly, and the downloaded engine reproduces 210 of 210 published trip times.
+            CONTROL: a deliberately corrupted download makes that same suite exit 1, so the pass means
+            something. The demo a recruiter clicks is byte for byte the thing the gate verified.
+            Live: https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html

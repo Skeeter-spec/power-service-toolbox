@@ -60,7 +60,7 @@ The first four carry the weight. The rest round out the trade.
 | # | Tool | What it does |
 |---|---|---|
 | 01 | **[Power chain one line explorer](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)** ✅ **live** | Five published UPS configurations as interactive one lines. Click any component to take it out of service and watch what goes dark. Verified against the source paper's own stated conclusions. |
-| 02 | TCC coordination studio | Plot breaker, fuse, and relay curves on log log axes, overlay two devices, compute the coordination interval, flag miscoordination. |
+| 02 | **[TCC coordination studio](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)** ✅ **live** | Two relay curves on log log axes, computed from a manufacturer's own published equation. Read the coordination interval at a fault current and see where the curves cross. Reproduces all 210 trip times the manual publishes, and prints no coordination verdict, because the customary interval's own source says "usually". |
 | 03 | ATS sequence simulator | Utility fail, sense, timers, engine start, transfer, retransfer, cooldown. Open and closed transition, in phase monitor, sync check, full timing chart. |
 | 04 | Relay bench | ANSI device numbers 50, 51, 27, 59, 87, 25, 86 as a configurable simulated relay. Set pickup and time dial, inject a fault current, watch it trip. |
 | 05 | Modbus meter test bench | A pymodbus slave simulating a real power meter, plus a register decoder and a live dashboard. |
@@ -74,9 +74,10 @@ The first four carry the weight. The rest round out the trade.
 
 <!-- BEGIN GENERATED: status. Do not hand edit. Regenerate: ./tools/build_readme.py -->
 
-**One of the ten tools is live**, meaning it has passed the gate above and is running where you can click it:
+**Two of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
 
 - **01. Power chain one line explorer**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)
+- **02. TCC coordination studio**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)
 
 <!-- END GENERATED: status -->
 
