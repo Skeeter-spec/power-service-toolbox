@@ -493,4 +493,21 @@ console.log(`  Section F: the tool still refuses to decode a 32 bit value it has
  *
  * 3. Function codes 0x02, 0x04, 0x06, 0x0F and the diagnostics subcodes are not implemented. The
  *    spec publishes examples for them; they were not rendered and are not claimed.
+ *
+ * 4. 🔴 THE ANSWER KEY CANNOT CHECK ITSELF, AND A FALSE GREEN PROVED IT.
+ *    Found while trying to prove the published Pages bytes could go red. The first corruption
+ *    control edited `0xCD, 0x6B, 0x05` in spec.js and THE SUITE STAYED GREEN. The string is on two
+ *    lines: the published `response`, and the `decoded.statusBytes` that encodeResponse builds FROM.
+ *    Corrupting both moved the fixture and the expectation together, so they still agreed. A control
+ *    that reports silence can be a control that never ran.
+ *    Corrupting only the `response` line goes red correctly (78 passed, 1 FAILED, exit 1), so the
+ *    suite is live. But the underlying property is real and worth naming: for each example, the
+ *    published bytes and the published field values are two representations of the SAME transcribed
+ *    fact, and no assertion in this file can tell you the transcription was right. A test cannot
+ *    catch a misread page.
+ *    THAT is why pattern 12 is not optional here and why the provenance note in spec.js is part of
+ *    the evidence rather than decoration: the only instrument that can validate an answer key is a
+ *    SECOND READER at the publisher. Two readers rendered every page at 3x, never saw each other's
+ *    transcription, and agreed on every byte of all five examples. If a sixth example is ever added,
+ *    it gets read twice or it does not go in.
  */

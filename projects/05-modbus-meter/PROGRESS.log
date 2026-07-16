@@ -9,8 +9,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     learn    done
     build    done
     verify   done
-    publish  todo
-    live     todo
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -83,3 +83,20 @@ contains finished, verified work.
             SCOPE, stated because the slug oversells it: NO METER REGISTER MAP IS SOURCED. The spec
             defines none, because a meter's map is its vendor's. This ships the FRAME layer only.
             Naming the project "modbus-meter" does not entitle it to invent a meter.
+
+2026-07-16  publish + live. Pages serves it and the SERVED BYTES reproduce all 79 checks:
+            https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html
+            Served spec.js / engine.js / index.html checksum identical to the repo, and the served
+            tree runs the suite green on its own.
+
+            🔴 AND THE CORRUPTION CONTROL FAILED FIRST, WHICH IS THE FINDING.
+            Corrupting `0xCD, 0x6B, 0x05` in the served spec.js left the suite GREEN. The string is
+            on TWO lines (the published `response`, and the `decoded.statusBytes` encodeResponse
+            builds FROM), so the fixture and the expectation moved together and still agreed. A
+            control that reports silence can be a control that never ran. Corrupting ONLY the
+            response line goes red correctly: 78 passed, 1 FAILED, exit 1, naming the right check.
+            The property behind it is real and now documented in verify.js: an answer key cannot
+            check itself. No assertion can tell you a page was transcribed correctly. The only
+            instrument that validates an answer key is a SECOND READER at the publisher, which is
+            why pattern 12 was run here and why the provenance note in spec.js is evidence, not
+            decoration. A sixth example gets read twice or it does not go in.

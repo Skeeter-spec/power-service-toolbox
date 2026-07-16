@@ -63,7 +63,7 @@ The first four carry the weight. The rest round out the trade.
 | 02 | **[TCC coordination studio](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)** ✅ **live** | Two relay curves on log log axes, computed from a manufacturer's own published equation. Read the coordination interval at a fault current and see where the curves cross. Reproduces all 210 trip times the manual publishes, and prints no coordination verdict, because the customary interval's own source says "usually". |
 | 03 | **[ATS sequence simulator](https://skeeter-spec.github.io/power-service-toolbox/projects/03-ats-sequence/build/index.html)** ✅ **live** | Utility fail, sense, timers, engine start, transfer, retransfer, cooldown, on a named vendor's own published timers. Open, closed and delayed transition, with the sync check reproduced at the boundary its manual actually states. It has no vendor neutral mode, because there is no vendor neutral ATS: ASCO and Russelectric agree on the sequence completely and disagree on its numbers by 6x. It also refuses to tell you how long two live sources sit paralleled, because the manufacturer deleted that number from the current revision. |
 | 04 | Relay bench | ANSI device numbers 50, 51, 27, 59, 87, 25, 86 as a configurable simulated relay. Set pickup and time dial, inject a fault current, watch it trip. |
-| 05 | Modbus meter test bench | A pymodbus slave simulating a real power meter, plus a register decoder and a live dashboard. |
+| 05 | **[Modbus frame codec](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)** ✅ **live** | The same PDU sent over serial and over TCP, side by side, reproducing the specification's own published hex worked examples byte for byte. It shows which parts of a Modbus TCP frame are fossils of an RS-485 bus, because the spec says so itself: the PDU is capped at 253 bytes by "the size constraint inherited from the first MODBUS implementation on Serial Line network", and MBAP spends a field on a Unit Identifier defined as a slave "connected on a serial line". It refuses to decode a 32 bit float, because the specification defines byte order within a register and defines no type wider than one. No meter register map ships: a meter's map belongs to its vendor, and none is sourced yet. |
 | 06 | Ladder logic interpreter | Encode a real close permissive: 86 lockout clear, 25 sync check OK, spring charged, no 50 or 51 trip. Verified against a truth table. |
 | 07 | Switching order and LOTO planner | Build a switching order against the one line, verify isolation boundaries and the zone of protection, generate the tagout sequence. |
 | 08 | NETA acceptance test checklist generator | Equipment type in, test plan out: insulation resistance, contact resistance, primary and secondary injection, trip timing. Structure and citation only. |
@@ -74,11 +74,12 @@ The first four carry the weight. The rest round out the trade.
 
 <!-- BEGIN GENERATED: status. Do not hand edit. Regenerate: ./tools/build_readme.py -->
 
-**Three of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
+**Four of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
 
 - **01. Power chain one line explorer**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)
 - **02. TCC coordination studio**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)
 - **03. ATS sequence simulator**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/03-ats-sequence/build/index.html)
+- **05. Modbus meter test bench**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)
 
 <!-- END GENERATED: status -->
 
