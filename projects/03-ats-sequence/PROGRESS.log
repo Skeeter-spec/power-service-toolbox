@@ -5,7 +5,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   wip
+    source   done
     learn    todo
     build    todo
     verify   todo
@@ -44,6 +44,53 @@ contains finished, verified work.
             Found in the primary and left unresolved on purpose: the manual CONTRADICTS ITSELF on the
             Shed Load timer (table p.2-6 says 1.5 sec, narrative p.2-7 says "3 second default"). Do
             not build against it without surfacing the discrepancy.
+
+2026-07-16  source DONE. The blocking gap is closed: 381333-126 was fetched from the MANUFACTURER
+            (download.schneider-electric.com, HTTP 200, no cross host redirect, metadata is ASCO's own
+            Word/Distiller chain with an employee author, NOT a re-render) and diffed against the
+            distributor's mirror this project had been reading. The gap was real and it was a REVISION
+            gap, which is not the failure mode the wip note predicted.
+            🔴 THE MIRROR IS REV K, 2004, 32 pp, "4000 & 7000 Series". THE PUBLISHER SERVES REV N,
+            09/2018, 36 pp, "7000 SERIES" ONLY. This project had been sourcing a 14 year old revision
+            covering a product line the current document has dropped. And note WHY it was invisible:
+            the mirror is a clean, unstamped, authentic ASCO file with no "courtesy of" cover and no
+            distributor re-render. IT IS NOT A BAD COPY, IT IS A BAD REVISION. Reading it more
+            carefully could never have surfaced that; only the publisher's shelf knows what is current.
+            That is a SECOND, independent reason for pattern 10 that the pattern did not previously
+            state: it was written about a copy's FIDELITY, and this is about its CURRENCY.
+            ✅ WHAT SURVIVED, and it is the honest headline: EVERY number this project verifies against
+            is IDENTICAL in K and N. The in-sync sentence verbatim (5 deg / 0.2 Hz / 5%). Timers 1C,
+            1F, 2B, 2E, 3A both modes, in sync 1.5s, fail to sync 5 min. The whole voltage and
+            frequency table (85/90, 75/90, 90/95) and every range. The mirror's numbers were RIGHT.
+            🔴 WHAT DID NOT SURVIVE, and it was a live claim in SOURCES.md: THE CLOSED TRANSITION
+            EXTENDED PARALLEL TIME IS NO LONGER PUBLISHED. Rev K had a settings row (default 0.5 sec,
+            range 0.100 to 1.000, CTTS TD XtdParallelTD). In Rev N THE ROW IS GONE and the narrative
+            now says "FACTORY PRESET extended parallel time". ASCO took it off the menu and printed no
+            value. SOURCES.md stated the 0.5 sec default and the range as fact; against the current
+            document that is FALSE. It was also the single most attractive number in the source for a
+            sim to expose as a slider, and it governs how long two live sources sit paralleled. CUT.
+            The app may name the parameter and say ASCO factory presets it. No sourced range exists.
+            🔴 THE FINDING THAT INVERTS OUR OWN RULE: REV N IS WRONG WHERE REV K WAS RIGHT. Rev K p.2-2
+            labels the frequency rows correctly (Over Frequency Trip, NORMAL/EMERG FREQUENCY). Rev N
+            p.7 REGRESSED them to "Over Voltage Trip" and "NORMAL/EMERG VOLTAGE" while the footnote and
+            the OF Trip screen names still say frequency. Values untouched, labels broken. Read as a
+            RENDERED IMAGE at 3x on BOTH revisions before claiming it, because this is exactly the
+            class of thing a text layer invents (it was first spotted as a suspicious text-layer
+            string, and the render is what upgraded it from suspicion to fact).
+            ⇒ Pattern 10 is RIGHT and this is its edge, worth stating so a future session does not
+            over-read it: THE PUBLISHER'S CURRENT COPY IS AUTHORITATIVE ABOUT WHAT IS CURRENT. IT IS
+            NOT AUTOMATICALLY THE BETTER DOCUMENT. Newer is not a synonym for correct. Both copies are
+            kept in the audit table for this reason.
+            METHOD, and it cost a call: the se.com URL this project carried as the manufacturer's copy
+            is a LANDING PAGE, not the document. It returns HTTP 200 and 138 KB of text/html with the
+            real PDF link inside. A 200 IS NOT A DOCUMENT; assert the content type. Same trap the
+            industrial-index hit on 12 of 17 rows. Its row is downgraded to LOCATED ONLY.
+            NEXT: learn/build, and the build inherits three hard constraints from this diff. No sourced
+            extended parallel range. 7000 Series only. The Shed Load self-contradiction is UNFIXED in
+            Rev N (table p.11 = 1.5 sec, narrative p.12 = "3 second default") and must be surfaced in
+            the app, not silently resolved. Sharpened: it is not general sloppiness. The SAME Rev N
+            narrative page states the In-Phase Monitor's 1.5 sec default and that one AGREES with its
+            table. One specific row disagrees with itself.
             Do NOT use any Eaton ATC-300+ number: 4 fetch attempts failed, values came only from a
             search engine's synthesis. Eaton is the vendor that actually uses the TDNE/TDES/TDEN
             names, so the trap is labelling ASCO's traced numbers with Eaton's acronyms. That pairing
