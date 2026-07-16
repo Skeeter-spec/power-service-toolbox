@@ -100,3 +100,18 @@ contains finished, verified work.
             instrument that validates an answer key is a SECOND READER at the publisher, which is
             why pattern 12 was run here and why the provenance note in spec.js is evidence, not
             decoration. A sixth example gets read twice or it does not go in.
+
+2026-07-16  publish + live. Pushed at 2068865; Pages serves it at
+            https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html
+            SERVED BYTES VERIFIED: fetched the three files back off Pages, checksummed them identical
+            to the repo, ran the suite against the SERVED copy: 79/79.
+            ⚠ AND THE CONTROL FOR THAT CHECK LIED THE FIRST TIME, which is the lesson worth keeping.
+            The control corrupts the served answer key and demands the suite go red. It reported
+            EXIT=0, a clean pass, on an obviously broken file. Cause: the sed pattern
+            `0xCD, 0x6B, 0x05` occurs on BOTH the answer key's `response:` line AND its `decoded:
+            statusBytes` line, so one sed corrupted the CLAIM and the CHECK in the same stroke. The
+            two still agreed, so the suite passed, and the "corruption" proved nothing.
+            ⇒ A MUTATION MUST BREAK ONE SIDE ONLY. If the pattern you are seding appears on both the
+            published value and the expected value, you have not induced a fault, you have renamed a
+            constant. Re-run asymmetrically (response only): exit 1, 1 FAILED, control fires. The
+            served claim above rests on THAT run, not the first one.
