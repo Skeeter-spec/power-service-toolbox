@@ -1,0 +1,74 @@
+# Mutants for 03. Run: ./tools/mutate.sh projects/03-ats-sequence
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one MUST make the suite go red. A
+# survivor means that behaviour is either dead code or untested, and both are findings.
+#
+# 03 IS A THIRD SHAPE, AND THE MUTANTS SHOW IT. 01's engine answered a structural question, so its
+# mutants broke graph logic. 02's whole claim was arithmetic, so its mutants were one character edits
+# to an equation. This engine's claim is that a STATE MACHINE reaches published states at published
+# times, so these mutants come in two flavours: loosen a published boundary, or quietly fill in a
+# number the manufacturer does not publish.
+#
+# THE SECOND FLAVOUR IS THE POINT OF THIS PROJECT. Four of these (extended parallel value, parallel
+# duration, in phase angle, shed load contradiction) do not break a calculation at all. They make the
+# tool CLAIM MORE THAN ITS SOURCE DOES, which is the exact failure this repo exists to avoid and the
+# one that no ordinary test suite would ever look for. If any of those four survives, the refusal it
+# guards is decoration and someone will delete it.
+#
+# ⚠ RUNNER CONSTRAINT, learned here: mutants.txt is parsed with `IFS='|' read`, so A SED EXPRESSION
+# MAY NOT CONTAIN A PIPE. `s/a && b/a || b/` silently truncates at the first `||` and the mutant runs
+# as garbage. Express "any one of these suffices" by DROPPING each criterion in turn instead, which
+# is a better test anyway: it proves each criterion is individually load bearing.
+#
+# ⚠ DELIBERATELY NOT MUTATED, and the reason is worth reading: the 1C comparison
+# `s.normalReturnsAt < tOverride`. Loosening it to `<=` changes only what happens at an outage of
+# EXACTLY 1.000 s, and ASCO does not publish what the switch does at that instant. The sync
+# criterion's boundary IS published ("must be LESS THAN 5 degrees"), so it is asserted at the
+# boundary and mutated there. This one is not. Adding the mutant would force an assertion about
+# unsourced behaviour to kill it, which is how a suite starts inventing facts to keep itself green.
+# One boundary is in the book. The other is not. Only mutate the one that is.
+
+# --- A. The sync check permissive (Rev N p.25). The one published numeric verdict in this source. ---
+build/engine.js | s/phase: Math.abs(meas.phaseDeg) < sc.maxPhaseDeg,/phase: Math.abs(meas.phaseDeg) <= sc.maxPhaseDeg,/ | phase boundary loosened to <= (exactly 5.0 deg would wrongly permit a parallel)
+build/engine.js | s/frequency: Math.abs(meas.freqHz) < sc.maxFreqHz,/frequency: Math.abs(meas.freqHz) <= sc.maxFreqHz,/ | frequency boundary loosened to <= (exactly 0.2 Hz wrongly permitted)
+build/engine.js | s/voltage: Math.abs(meas.voltagePct) < sc.maxVoltagePct/voltage: Math.abs(meas.voltagePct) <= sc.maxVoltagePct/ | voltage boundary loosened to <= (exactly 5% wrongly permitted)
+build/engine.js | s/ok: checks.phase && checks.frequency && checks.voltage,/ok: checks.frequency \&\& checks.voltage,/ | phase criterion dropped: two of ASCO three conditions decide a parallel
+build/engine.js | s/ok: checks.phase && checks.frequency && checks.voltage,/ok: checks.phase \&\& checks.voltage,/ | frequency criterion dropped
+build/engine.js | s/ok: checks.phase && checks.frequency && checks.voltage,/ok: checks.phase \&\& checks.frequency,/ | voltage criterion dropped
+build/engine.js | s/phase: Math.abs(meas.phaseDeg) < sc.maxPhaseDeg,/phase: meas.phaseDeg < sc.maxPhaseDeg,/ | Math.abs dropped: a source 30 deg BEHIND reads as in sync
+
+# --- B. The deadband (Rev N p.7). Two thresholds, and the gap between them is published. ---
+build/engine.js | s/if (prevAvailable) {/if (true) {/ | source history ignored: one threshold, no deadband, a source at 87% chatters
+build/engine.js | s/return voltagePct >= th.voltagePickup && freqPct >= th.freqPickup;/return voltagePct >= th.voltageDropout \&\& freqPct >= th.freqDropout;/ | pickup replaced by dropout: the deadband collapses to a single point
+build/engine.js | s/freqPct < th.freqDropout;/false;/ | frequency can no longer drop a source out (voltage only)
+
+# --- C. Published defaults (Rev N p.9). Wrong here is a number that is quietly wrong. ---
+build/vendors.js | s/default: 1, min: 0, max: 6, unit: 's',/default: 2, min: 0, max: 6, unit: 's',/ | 1C default changed from the published 1 s to 2 s
+build/vendors.js | s/default: 1800, min: 0, max: 3659, unit: 's',/default: 300, min: 0, max: 3659, unit: 's',/ | 3A given Russelectric 300 s: the exact cross vendor fabrication this project exists to prevent
+build/vendors.js | s/default: 300, min: 0, max: 3659, unit: 's',/default: 0, min: 0, max: 3659, unit: 's',/ | 2E cooldown zeroed: the engine stops the instant the load leaves it
+build/vendors.js | s/default: 30, min: 0, max: 35999, unit: 's',/default: 1800, min: 0, max: 35999, unit: 's',/ | test mode retransfer given the 30 min failure value
+
+# --- D. Published ranges (Rev N p.9) are a real constraint, not a hint. ---
+build/vendors.js | s/default: 1, min: 0, max: 6, unit: 's',/default: 1, min: 0, max: 60, unit: 's',/ | 1C published max widened 6 -> 60: an out of range setting is accepted
+build/engine.js | s/if (overrides && Object.prototype.hasOwnProperty.call(overrides, key)) {/if (false) {/ | overrides ignored entirely: every timer silently stuck at its default
+
+# --- E. The sequence itself. What each timer is FOR. ---
+build/engine.js | s/if (s.normalReturnsAt !== null && s.normalReturnsAt < tOverride) {/if (false) {/ | 1C override removed: a 0.5 s blink cranks the engine and runs the whole cycle
+build/engine.js | s/    ? timerValue(profile, 'retransferToNormalTest', s.timers)/    ? timerValue(profile, 'retransferToNormal', s.timers)/ | test transfer wrongly waits the 30 min failure retransfer
+build/engine.js | s/  t += t2E;/  t += 0;/ | 2E never advances the timeline: engine stop lands on top of the retransfer
+build/engine.js | s/    t += dwell;/    t += 0;/ | delayed transition dwell not applied: closes onto a spinning motor immediately
+build/engine.js | s/      t += tFail;/      t += 0;/ | failure to synchronize timer not applied
+build/engine.js | s/      return { t, halted: true };/      return { t, halted: false };/ | OUT OF STEP SOURCES PARALLELED ANYWAY: the closed transition proceeds after failing sync
+
+# --- F. THE REFUSALS. None of these break a calculation. They make the tool overclaim. ---
+build/vendors.js | s/    value: null,/    value: 0.5,/ | Rev K superseded 0.5 s extended parallel default reintroduced from a 2004 revision
+build/engine.js | s/      duration: NOT_PUBLISHED,/      duration: 0.5,/ | the parallel overlap given a duration ASCO does not publish
+build/vendors.js | s/anglePublished: null,/anglePublished: 5,/ | the CLOSED transition 5 deg window transplanted onto the OPEN transition in phase monitor
+build/vendors.js | s/    narrativeValue: 3, narrativePage: 12,/    narrativeValue: 1.5, narrativePage: 12,/ | the Shed Load contradiction silently resolved to the table value
+build/vendors.js | s/  runnable: false,/  runnable: true,/ | Russelectric declared runnable on two traced timers
+build/engine.js | s/  if (!profile) throw new Error('no vendor profile: this engine has no vendor neutral mode');/  if (!profile) return null;/ | the vendor profile requirement dropped: a vendor neutral ATS is implied
+
+# --- G. The central claim: vendors do not share defaults. ---
+build/vendors.js | s/      agree: asco.default === russ.value/      agree: true/ | the divergence table claims ASCO and Russelectric agree

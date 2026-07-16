@@ -6,9 +6,9 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
     source   done
-    learn    todo
-    build    todo
-    verify   todo
+    learn    done
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -95,3 +95,85 @@ contains finished, verified work.
             search engine's synthesis. Eaton is the vendor that actually uses the TDNE/TDES/TDEN
             names, so the trap is labelling ASCO's traced numbers with Eaton's acronyms. That pairing
             would be fabricated. Use ASCO's own feature names (1C, 2B, 2E, 3A) and cite ASCO.
+
+2026-07-16  learn: done. reference/ats-sequence-of-operation.md.
+            The domain thesis, and it is 03's version of 01 refusing to print a tier, reached from a
+            completely different direction: THERE IS NO "THE" ATS SEQUENCE. ASCO and Russelectric agree
+            on structure completely and disagree on numbers by 6x (retransfer 30 min vs 300 sec) and
+            3x (momentary override 1 sec vs 3 sec). Neither is wrong. So the sim names its vendor on
+            every screen. Two independent projects arriving at the same refusal is what makes it a rule
+            rather than a quirk of one document.
+            Wrote up why each timer exists rather than what each timer is, because the reason is what
+            makes it memorable: 1C is the switch declining to panic over a recloser operation, 3A is
+            the switch refusing to believe a utility that just failed and is probably still being
+            worked on, 2E is entirely for the engine and not for the load. Read in order, the sequence
+            is one argument about what deserves to be believed.
+            Recorded the trap that nearly got me: IN PHASE MONITOR IS NOT SYNC CHECK. Different
+            features, different switch models (ASCO's own table marks in sync 7ACTS/7ACTB only, in
+            phase monitor 7ATS/7ATB), and only the closed transition's sync check has the 5 degree
+            window. Carrying 5 degrees across to the open transition monitor because both features say
+            "phase" would be inventing a spec and citing ASCO for it.
+            Also documented the four refusals the build inherits: no vendor neutral defaults, no
+            extended parallel control, surface the Shed Load contradiction rather than resolve it, no
+            NFPA 110 verbatim.
+
+2026-07-16  build: done. build/vendors.js + engine.js + index.html.
+            Zero dependencies, no CDN, no build step. Hand rolled SVG, same as 01 and 02.
+            The engine is a deterministic event simulator: named vendor profile + scenario in, an
+            ordered timeline of events out, each event carrying the manual page it comes from. It
+            has NO VENDOR NEUTRAL MODE and throws without a profile, which is the whole thesis
+            expressed as a type error rather than a paragraph.
+            THREE THINGS THE ENGINE DOES NOT KNOW AND SAYS SO, rather than guessing: how long two
+            live sources sit paralleled (emitted as duration: null), what a switch does after the
+            failure to synchronize timer expires (terminal, marked unsourced), and the physical
+            contact transfer time of an open transition (modelled instantaneous, labelled). Each is
+            asserted in verify/ so a later session cannot quietly fill one in.
+            Chart is a LOG TIME AXIS, log10(t+1), and the note under it says so in those words. The
+            sequence spans 1 second (the 1C override) to 2160 seconds (30 min retransfer + 5 min
+            cooldown). On a linear axis every decision the switch makes collapses into the first half
+            percent of the width. Log keeps t=0 at the origin and keeps the ORDER honest, which is
+            what a sequence of operation is about. Spacing is a ratio, never a duration.
+            Russelectric ships as a two row divergence TABLE, not a second simulator. Only two of its
+            timers were traced; inventing the other ten from ASCO's shape would fabricate exactly the
+            vendor agreement this project exists to disprove. `runnable: false`, and the engine says
+            why when you try.
+
+2026-07-16  verify: done. 63 checks, 0 failures. node verify/verify.js
+            29 mutants, all dead. ./tools/gate.sh green across the whole repo.
+            A THIRD SHAPE OF VERIFY, and worth naming: 01 checked a structural claim against a prose
+            verdict, 02 checked arithmetic against a 210 cell table. An ATS sequence is a STATE
+            MACHINE and ASCO publishes no filled in timeline to diff against. So this suite asserts
+            that published numbers appear at published times, that the one published numeric
+            criterion is reproduced AT ITS BOUNDARY, that published ranges are enforced, and that the
+            deadband behaves as two thresholds require.
+            THE BOUNDARY IS THE POINT: ASCO says "must be LESS THAN 5 degrees", so exactly 5.0 is NOT
+            in sync, and the suite asserts that on all three criteria. Reproducing a published
+            criterion and approximating it are different things and only the boundary tells them
+            apart.
+            SECTION F IS THE PRODUCT: twelve checks that assert what the tool REFUSES to claim. An
+            absence is not self enforcing. Nothing stopped a future session from finding Rev K's 0.5
+            sec extended parallel default, thinking "the manual publishes it", and adding the slider,
+            so there is now a check that greps the whole build for that number and for XtdParallelTD.
+            Four mutants exist purely to prove those refusals are load bearing: they break no
+            calculation at all, they just make the tool CLAIM MORE THAN ITS SOURCE. All four die.
+            🔴 A MUTANT DELIBERATELY NOT WRITTEN, and the reasoning is the useful part: loosening the
+            1C comparison from < to <= changes only what happens at an outage of EXACTLY 1.000 s, and
+            ASCO does not publish what the switch does at that instant. The sync criterion's boundary
+            IS published, so it is asserted and mutated. This one is not. Adding the mutant would
+            have forced an assertion about UNSOURCED behaviour in order to kill it, which is how a
+            suite starts inventing facts to keep itself green. One boundary is in the book. The other
+            is not. Only mutate the one that is.
+            ⚠ RUNNER CONSTRAINT FOUND HERE: mutants.txt is parsed with `IFS='|' read`, so a sed
+            expression MAY NOT CONTAIN A PIPE. `s/a && b/a || b/` truncates silently at the first
+            pipe. Expressed "any one criterion suffices" by dropping each criterion in turn instead,
+            which is a better test anyway: it proves each is individually load bearing.
+            TWO BUGS FOUND BY DRIVING THE REAL PAGE, neither visible to the node suite:
+            1. STRUCTURAL: the "Emergency source" lane label rendered at x = -13, outside the
+               viewBox, silently clipped, because the left margin was 92px and the label is 97px. A
+               clipped label still looks like a label, so a screenshot could not see it. Fixed, and
+               PROMOTED TO A PERMANENT CHECK (verify section G2) against the measured width.
+            2. VISUAL, and only a human eye catches this one: the emergency source lane read
+               "failed" at t=0. It has not failed. The generator is not running yet. One state name
+               ('dead') meant two different things on two different lanes, and the word described a
+               healthy standby plant as a fault. Now per lane: "not running" vs "failed".
+               This is why the visual pass happens even when the structural check is clean.
