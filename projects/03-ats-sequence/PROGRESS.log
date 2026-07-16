@@ -9,8 +9,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     learn    done
     build    done
     verify   done
-    publish  todo
-    live     todo
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -177,3 +177,25 @@ contains finished, verified work.
                ('dead') meant two different things on two different lanes, and the word described a
                healthy standby plant as a fault. Now per lane: "not running" vs "failed".
                This is why the visual pass happens even when the structural check is clean.
+
+2026-07-16  publish: done. Pushed as 068627f. Verify gate passed first, per the repo rule.
+            ./tools/gate.sh green across the whole repo before the commit: all three verify suites,
+            all mutants dead, every citation carrying a level and a provenance, README status in sync.
+
+2026-07-16  live: done.
+            https://skeeter-spec.github.io/power-service-toolbox/projects/03-ats-sequence/build/index.html
+            Verified the way 01 established, which is stronger than a status code and was necessary
+            anyway: skeeter-spec.github.io is blocked in BOTH browser surfaces, so the live site
+            cannot be driven directly.
+            1. Asserted CONTENT TYPE, not just the code. All three files: 200, and index.html is
+               text/html while both scripts are application/javascript. A 200 is not a document, and
+               this project already learned that the hard way on se.com's landing page.
+            2. Fetched the three files GitHub is actually serving and confirmed all three are BYTE
+               IDENTICAL (sha256) to the local copies that were driven in a real browser.
+            3. Ran the full verify suite AGAINST THE DOWNLOADED BYTES, not the local ones. 63/63.
+            4. CONTROL, because a green run proves nothing on its own: corrupted one served byte
+               (maxPhaseDeg 5 -> 9) and re-ran. Exit 1. The check could have failed and did not, which
+               is the only reason step 3 means anything.
+            First poll returned 200, so the Pages rebuild was already done. The earlier 404s were the
+            deploy still running and were correctly NOT read as a broken path: the poll distinguished
+            http 0 (no response) from a real 404, because a fetch failure is not a fact about the URL.
