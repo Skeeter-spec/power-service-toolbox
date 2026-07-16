@@ -81,8 +81,51 @@ while IFS='|' read -r target expr desc; do
   f="$P/$target"
   [ -f "$f" ] || { echo "  SKIP       $desc (no such file: $target)"; continue; }
 
+  # A MUTANT THAT NEVER RAN MUST NEVER BE REPORTED AS "killed". This is the runner's own version of
+  # the false pass it exists to catch, and it was live in here until 2026-07-16.
+  #
+  # MEASURED, not theorised. `IFS='|' read` splits on pipes, so a sed expression containing one --
+  # `s/a && b/a || b/`, the natural way to write "any one of these suffices" -- is TRUNCATED at the
+  # first pipe. The truncated expression is invalid sed. sed then exits 1 and writes NOTHING, so the
+  # runner copied a ZERO BYTE FILE over the target, node could not run at all, and the failure was
+  # reported as:  killed. Exit 0. "Every mutant died. The suite measures something."
+  #
+  # An empty file kills every suite. So ANY malformed sed reported a kill it had not earned, and the
+  # tool built to stop vacuous test suites was itself printing a vacuous pass. The NO-OP check below
+  # cannot see this: it catches "changed nothing", and this is "destroyed everything".
+  case "$desc" in
+    *"|"*)
+      echo "  BAD MUTANT $desc"
+      echo "             ^ THE SED EXPRESSION CONTAINS A PIPE, so this line was split wrong and the"
+      echo "               expression you see above is a fragment. mutants.txt is parsed with"
+      echo "               \`IFS='|' read\`; a pipe in the expression truncates it silently."
+      echo "               Rewrite without a pipe: express \"any one suffices\" by DROPPING each"
+      echo "               criterion in turn, which proves each is individually load bearing anyway."
+      survived=$((survived + 1))
+      continue
+      ;;
+  esac
+
   cp "$f" "$TMP/orig"
-  sed "$expr" "$TMP/orig" > "$TMP/mutant"
+  if ! sed "$expr" "$TMP/orig" > "$TMP/mutant" 2>"$TMP/sederr"; then
+    echo "  BAD MUTANT $desc"
+    echo "             ^ sed REJECTED the expression, so no mutant was ever applied and the suite"
+    echo "               never had a chance to notice one. This is NOT a kill."
+    echo "               sed said: $(head -1 "$TMP/sederr")"
+    survived=$((survived + 1))
+    cp "$TMP/orig" "$f"
+    continue
+  fi
+  if [ ! -s "$TMP/mutant" ]; then
+    # Belt and braces: an empty file PARSES (`node --check` on 0 bytes succeeds), so emptiness needs
+    # its own test. A 0 byte source kills every suite for reasons unrelated to the behaviour.
+    echo "  BAD MUTANT $desc"
+    echo "             ^ the mutant is EMPTY. An empty file fails every suite no matter what it"
+    echo "               asserts, so a 'kill' here would measure nothing. This is NOT a kill."
+    survived=$((survived + 1))
+    cp "$TMP/orig" "$f"
+    continue
+  fi
 
   if cmp -s "$TMP/orig" "$TMP/mutant"; then
     # The sed matched nothing, so this mutant never existed. That is a silent false PASS:
