@@ -138,6 +138,42 @@ while IFS='|' read -r target expr desc; do
     continue
   fi
 
+  # A MUTANT MUST BREAK ONE SIDE ONLY. If its sed changes more than one line, the odds are it
+  # rewrote the CLAIM and the CHECK in the same stroke, which is not a fault at all.
+  #
+  # MEASURED 2026-07-16, on this repo, and it printed a clean pass on a deliberately broken file.
+  # The served bytes of project 05 were being verified by corrupting the published answer key and
+  # demanding the suite go red:
+  #     sed 's/0xCD, 0x6B, 0x05/0xCE, 0x6B, 0x05/' build/spec.js
+  # That string occurs on TWO lines of spec.js: the answer key's `response:` line AND its
+  # `decoded: statusBytes` line, which is the value the response is checked against. One sed
+  # changed both. They still agreed. The suite passed, honestly, at exit 0, on a file whose
+  # published answer had been altered. The "corruption" had not induced a fault, it had RENAMED A
+  # CONSTANT. Corrupting the response alone: exit 1, one FAIL, instantly.
+  #
+  # This is the NO-OP check's opposite twin, and neither catches the other. NO-OP is "the mutant
+  # changed nothing." This is "the mutant changed everything consistently." Both report green, both
+  # measure nothing, and this one is worse because the diff looks convincing.
+  #
+  # WHY THIS IS A HARD ERROR AND NOT A HINT: measured across all 83 mutants in this repo, EVERY ONE
+  # changes exactly one line. Single line is the real invariant here, not a style preference, so
+  # this check is silent on the whole clean tree and fires only on the shape that lied. If you ever
+  # have a legitimate multi line mutant, split it into one mutant per line: each then proves its own
+  # line is load bearing, which is strictly more information than the wide one gave.
+  changed=$(diff "$TMP/orig" "$TMP/mutant" 2>/dev/null | grep -c '^<')
+  if [ "$changed" -gt 1 ]; then
+    echo "  WIDE MUTANT $desc"
+    echo "             ^ this sed changed $changed LINES. A mutant must break ONE side only."
+    echo "               If the pattern occurs on both the published value and the value it is"
+    echo "               checked against, you corrupted the CLAIM and the CHECK together, they"
+    echo "               still agree, and the suite passes on a broken file. That is not a kill and"
+    echo "               it is not a survival: it is a measurement of nothing."
+    echo "               Narrow the pattern, or split it into one mutant per line."
+    survived=$((survived + 1))
+    cp "$TMP/orig" "$f"
+    continue
+  fi
+
   cp "$TMP/mutant" "$f"
   if ( cd "$P" && node verify/verify.js >/dev/null 2>&1 ); then
     echo "  SURVIVED   $desc"
