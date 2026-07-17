@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Relay bench: seven ANSI elements, each sourced</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  04 Relay bench. Zero own dependencies. Device 51 runs on project 02's engine, loaded below by
+  relative <script src>, which IS the interlock rather than a copy of it.
+
+  ⚠ EVERY STRING SHIPS. verify.js section F greps devices.js for a standards-conformance claim; keep
+  that discipline here. No "implements IEEE C37.112". Name the manufacturer, cite the manual, stop.
+-->
+<style>
+  :root {
+    --bg:#101319; --panel:#181c24; --line:#2a3040; --ink:#e7eaf1; --dim:#98a2b8;
+    --acc:#7aa2f7; --trip:#e0533f; --ok:#52b788; --warn:#f5b53d; --hold:#c9a7e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+  .wrap{max-width:1120px;margin:0 auto;padding:26px 20px 80px}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.2px}
+  .sub{color:var(--dim);margin:0 0 20px;max-width:78ch}
+  .banner{background:#3a2418;border:1px solid #7a4a2a;color:#f3c8a8;padding:10px 14px;
+    border-radius:8px;margin-bottom:20px;font-size:13.5px}
+  .banner b{color:#ffd9b8}
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+  .tabs button{font:inherit;cursor:pointer;background:#222736;color:var(--ink);
+    border:1px solid var(--line);border-radius:7px;padding:7px 12px}
+  .tabs button:hover{border-color:var(--acc)}
+  .tabs button[aria-pressed="true"]{background:#26365c;border-color:var(--acc);color:#fff}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:20px}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);
+    margin:0 0 14px;font-weight:600}
+  label.f{display:block;margin-bottom:12px;font-size:13.5px}
+  label.f span{display:block;color:var(--dim);margin-bottom:3px;font-size:12.5px}
+  input,select{width:100%;font:inherit;background:#0e1015;color:var(--ink);
+    border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+  input:focus,select:focus{outline:none;border-color:var(--acc)}
+  .verdict{border-radius:9px;padding:16px 18px;margin-bottom:14px;border:1px solid var(--line)}
+  .verdict .big{font-size:22px;font-weight:700;letter-spacing:-.3px}
+  .verdict.trip{background:#2a1512;border-color:var(--trip)}
+  .verdict.trip .big{color:var(--trip)}
+  .verdict.ok{background:#12241a;border-color:var(--ok)}
+  .verdict.ok .big{color:var(--ok)}
+  .verdict.hold{background:#1f1a2a;border-color:var(--hold)}
+  .verdict.hold .big{color:var(--hold)}
+  .rows{font-size:13.5px}
+  .rows div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+  .rows div span:last-child{font-variant-numeric:tabular-nums;color:var(--ink)}
+  .rows .y{color:var(--ok)} .rows .n{color:var(--trip)}
+  svg{width:100%;height:auto;display:block;background:#0e1015;border:1px solid var(--line);border-radius:8px}
+  .cite{font-size:12px;color:var(--dim);margin-top:12px;border-left:3px solid var(--acc);
+    padding:7px 0 7px 11px;background:#1c2130;border-radius:0 6px 6px 0}
+  .refuse{border:1px dashed #4a3a5a;border-radius:8px;padding:11px 14px;margin-top:16px;
+    background:#1a1622;font-size:13px;color:#ded3ea}
+  .refuse b{color:#fff}
+  .prov{font-size:12px;margin-top:10px}
+  .prov .mir{color:var(--warn)} .prov .pub{color:var(--ok)}
+  footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px}
+  a{color:var(--acc)}
+  code{background:#0e1015;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12.5px}
+</style>
+
+<div class="wrap">
+  <h1>Relay bench</h1>
+  <p class="sub">
+    Seven ANSI protective elements as configurable simulated relays. Set the parameters, inject a
+    signal, watch the element decide. Each one is built against a published document and names it, and
+    the time-overcurrent element runs on this toolbox's own coordination engine rather than a copy of
+    its math.
+  </p>
+
+  <div class="banner">
+    <b>Educational. Not for field use.</b> These reproduce published behaviour so it can be explored.
+    Nothing here is an engineered protection setting, a substitute for the manufacturer's instructions,
+    or a device you would trust to trip a real breaker.
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="cols">
+    <div class="panel">
+      <h2 id="ttl">Element</h2>
+      <div id="controls"></div>
+      <div class="cite" id="cite"></div>
+    </div>
+
+    <div>
+      <div id="verdict" class="verdict"><div class="big" id="vbig">...</div><div id="vsub" class="rows"></div></div>
+      <svg id="viz" viewBox="0 0 360 150" aria-hidden="true"></svg>
+      <div class="refuse" id="refuse"></div>
+    </div>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<!-- THE INTERLOCK: load project 02's verified curve engine, then this bench. Relative paths mirror the
+     repo layout and resolve on GitHub Pages. If 02 moves, 51 breaks, and that is correct. -->
+<script src="../../02-tcc-coordination/build/curves.js"></script>
+<script src="../../02-tcc-coordination/build/engine.js"></script>
+<script src="devices.js"></script>
+<script>
+'use strict';
+// devices.js reads window.TCC in the browser; make sure it is present before we call element51.
+var D = (function () {
+  // devices.js used module.exports guard; in the browser it defined globals via function scope, so we
+  // re-expose the same functions by re-evaluating is not needed. devices.js attaches
+  // to window. Re-require by reading the functions it defined: they are in the global scope only if
+  // not wrapped. To keep this robust, devices.js is authored to also expose window.Devices below.
+  return window.Devices;
+})();
+
+var EL = D; // alias
+
+var TABS = [
+  { id: 50, name: '50 Instantaneous OC' },
+  { id: 51, name: '51 Inverse-time OC' },
+  { id: 27, name: '27 Undervoltage' },
+  { id: 59, name: '59 Overvoltage' },
+  { id: 87, name: '87 Differential' },
+  { id: 25, name: '25 Sync check' },
+  { id: 86, name: '86 Lockout' },
+];
+var active = 50;
+
+// latch state for 86 persists across renders (non-volatile in spirit)
+var lockoutState = { lockedOut: false };
+
+function el(t, a, txt){var n=document.createElement(t);for(var k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;}
+function svgEl(t,a,txt){var n=document.createElementNS('http://www.w3.org/2000/svg',t);for(var k in a)n.setAttribute(k,a[k]);if(txt!=null)n.textContent=txt;return n;}
+
+function field(labelText, id, type, value, opts) {
+  var l = el('label', { class: 'f' });
+  l.appendChild(el('span', {}, labelText));
+  var inp;
+  if (type === 'select') {
+    inp = el('select', { id: id });
+    opts.forEach(function (o) { var op = el('option', { value: o.v }, o.t); if (o.v === value) op.setAttribute('selected',''); inp.appendChild(op); });
+  } else {
+    inp = el('input', { id: id, type: 'number', step: 'any', value: value });
+  }
+  inp.addEventListener('input', render);
+  inp.addEventListener('change', render);
+  l.appendChild(inp);
+  return l;
+}
+function val(id){var e=document.getElementById(id);return e?parseFloat(e.value):NaN;}
+function sval(id){var e=document.getElementById(id);return e?e.value:null;}
+
+function setVerdict(cls, big, rows) {
+  var v = document.getElementById('verdict');
+  v.className = 'verdict ' + cls;
+  document.getElementById('vbig').textContent = big;
+  var sub = document.getElementById('vsub'); sub.innerHTML = '';
+  (rows || []).forEach(function (r) {
+    var d = el('div', {});
+    d.appendChild(el('span', {}, r[0]));
+    var s = el('span', r[2] ? { class: r[2] } : {}, r[1]);
+    d.appendChild(s); sub.appendChild(d);
+  });
+}
+function setRefuse(html){ document.getElementById('refuse').innerHTML = html; }
+function setCite(txt){ document.getElementById('cite').textContent = txt; }
+function fnum(x){ return x===Infinity?'never':(Math.abs(x)>=100?x.toFixed(1):x.toFixed(3)); }
+
+// draw a simple element glyph
+function drawTrip(tripped, label){
+  var s=document.getElementById('viz'); s.innerHTML='';
+  s.appendChild(svgEl('rect',{x:60,y:45,width:240,height:60,rx:6,fill:'none',
+    stroke:tripped?'var(--trip)':'var(--dim)','stroke-width':2}));
+  s.appendChild(svgEl('text',{x:180,y:82,'text-anchor':'middle','font-size':16,
+    fill:tripped?'var(--trip)':'var(--dim)','font-weight':700}, label));
+  s.appendChild(svgEl('circle',{cx:320,cy:75,r:8,fill:tripped?'var(--trip)':'var(--ok)'}));
+}
+
+function render() {
+  // tabs
+  var tabs=document.getElementById('tabs'); tabs.innerHTML='';
+  TABS.forEach(function(t){
+    var b=el('button',{},t.name); b.setAttribute('aria-pressed',t.id===active);
+    b.onclick=function(){active=t.id;buildControls();render();}; tabs.appendChild(b);
+  });
+  try { compute(); }
+  catch(e){
+    // A refusal throws from inside the element (87 without a restraint, 25 without a relay), which
+    // can happen BEFORE compute() reached its own setCite/setRefuse. So the catch owns the ENTIRE
+    // refusal presentation: otherwise the citation box keeps showing the PREVIOUS element's text
+    // (measured: 87's refusal showed 51's "project 02 engine" cite) and the reason gets cramped into
+    // a verdict row where the label and value run together ("whyname the restraint..."). #22.
+    setVerdict('trip', 'REFUSED', []);
+    document.getElementById('viz').innerHTML = '';
+    setCite('This element refuses to answer until it is told which published thing to model. That refusal is the point, not an error.');
+    setRefuse('<b>Refused.</b> ' + e.message.replace(/^\d+\s+REFUSED:\s*/, ''));
+  }
+}
+
+function buildControls() {
+  var c = document.getElementById('controls'); c.innerHTML='';
+  document.getElementById('ttl').textContent = TABS.filter(function(t){return t.id===active;})[0].name;
+  setRefuse('');
+  if (active===50){
+    c.appendChild(field('Pickup (A)','p50','n',1000));
+    c.appendChild(field('Definite time delay (s)','d50','n',0.05));
+    c.appendChild(field('Injected current (A)','i50','n',1200));
+  } else if (active===51){
+    c.appendChild(field('Curve family','fam51','select','ge850-ieee',[{v:'ge850-ieee',t:'GE Multilin 850 (IEEE)'},{v:'ieee',t:'"IEEE" (unnamed — should refuse)'}]));
+    c.appendChild(field('Shape','sh51','select','extremely-inverse',[{v:'extremely-inverse',t:'Extremely Inverse'},{v:'very-inverse',t:'Very Inverse'},{v:'moderately-inverse',t:'Moderately Inverse'}]));
+    c.appendChild(field('Pickup (A)','p51','n',100));
+    c.appendChild(field('Time dial (TDM)','t51','n',2));
+    c.appendChild(field('Injected current (A)','i51','n',500));
+  } else if (active===27||active===59){
+    c.appendChild(field('Pickup (V)','p_v',active===27?'n':'n',active===27?100:120));
+    c.appendChild(field('Pickup delay (s)','d_v','n',2));
+    c.appendChild(field('Injected voltage (V)','i_v','n',active===27?90:130));
+  } else if (active===87){
+    c.appendChild(field('Restraint definition','r87','select','',[{v:'',t:'choose one (required)'},{v:'average',t:'AVERAGE (eq. 3)'},{v:'maximum',t:'MAXIMUM (eq. 4)'}]));
+    c.appendChild(field('Scaling factor k (AVERAGE only)','k87','n',0.5));
+    c.appendChild(field('Slope (%)','s87','n',25));
+    c.appendChild(field('Minimum pickup','m87','n',0.5));
+    c.appendChild(field('Winding current 1','w1','n',10));
+    c.appendChild(field('Winding current 2','w2','n',-6));
+  } else if (active===25){
+    var relays=Object.keys(EL.SYNC_RELAYS).map(function(k){return {v:k,t:EL.SYNC_RELAYS[k].label};});
+    relays.unshift({v:'',t:'name the relay (required)'});
+    c.appendChild(field('Relay','rel25','select','',relays));
+    c.appendChild(field('Angle setting (deg)','sa25','n',10));
+    c.appendChild(field('Slip setting (Hz)','ss25','n',0.1));
+    c.appendChild(field('Voltage window low','vl25','n',90));
+    c.appendChild(field('Voltage window high','vh25','n',110));
+    c.appendChild(field('Actual angle (deg)','ca25','n',5));
+    c.appendChild(field('Actual slip (Hz)','cs25','n',0.05));
+    c.appendChild(field('Source 1 voltage','v1','n',100));
+    c.appendChild(field('Source 2 voltage','v2','n',100));
+    c.appendChild(field('Breaker close time (cycles, for advance angle)','cb25','n',5));
+  } else if (active===86){
+    c.appendChild(field('Trip input (SET)','set86','select','0',[{v:'0',t:'off'},{v:'1',t:'on (trip)'}]));
+    c.appendChild(field('Manual reset (RESET)','rst86','select','0',[{v:'0',t:'off'},{v:'1',t:'on (reset)'}]));
+  }
+}
+
+function compute() {
+  if (active===50){
+    var r=EL.element50({pickup:val('p50'),delay:val('d50')}, val('i50'));
+    setVerdict(r.pickedUp?'trip':'ok', r.pickedUp?'PICKUP':'no pickup',
+      [['picked up', r.pickedUp?'yes':'no', r.pickedUp?'y':'n'],['trip time', fnum(r.tripTime)+' s'],['type','definite time']]);
+    drawTrip(r.pickedUp,'50'); setCite('Instantaneous overcurrent: a threshold, not a curve. Trips a fixed time above pickup regardless of magnitude.');
+    setRefuse('<b>It will not</b> pretend its trip time varies with current. That would be a 51, not a 50.');
+  } else if (active===51){
+    var dev={family:sval('fam51'),shape:sval('sh51'),pickup:val('p51'),tdm:val('t51')};
+    var r=EL.element51(dev,val('i51'));
+    setVerdict(r.pickedUp?'trip':'ok', r.pickedUp?'PICKUP':'no pickup',
+      [['multiple of pickup', fnum(r.multiple)+'x'],['trip time', fnum(r.tripTime)+' s'],['engine','project 02']]);
+    drawTrip(r.pickedUp,'51');
+    setCite('Inverse-time overcurrent. The curve math is project 02’s verified engine (reproduces GE 850’s 210-cell table). At TDM 2 and 5x pickup, GE publishes 2.59 s.');
+    setRefuse('<b>It runs on project 02</b> and inherits its refusal: an unnamed curve family (try “IEEE” above) throws, because GE and SEL both cite C37.112 over different constants.');
+  } else if (active===27||active===59){
+    var fn = active===27?EL.element27:EL.element59;
+    var r=fn({pickup:val('p_v'),pickupDelay:val('d_v')}, val('i_v'));
+    setVerdict(r.pickedUp?'trip':'ok', r.pickedUp?'PICKUP':'no pickup',
+      [['picked up', r.pickedUp?'yes':'no', r.pickedUp?'y':'n'],['direction', active===27?'trips LOW':'trips HIGH'],['trip time', fnum(r.tripTime)+' s']]);
+    drawTrip(r.pickedUp, String(active));
+    setCite('Definite-time '+(active===27?'under':'over')+'voltage. Direction is the whole content: 27 picks up at or below pickup, 59 at or above.');
+    setRefuse('<b>No sourced number.</b> No manufacturer worked example was found for these timers, so the bench asserts only their stated behaviour and direction, not a value with the standing of 51’s table.');
+  } else if (active===87){
+    var restraint=sval('r87');
+    var dev={restraint:restraint,k:val('k87'),slope:val('s87'),minPickup:val('m87')};
+    var r=EL.element87(dev,[val('w1'),val('w2')]);   // throws if restraint==''
+    setVerdict(r.operates?'trip':'ok', r.operates?'OPERATE':'restrain',
+      [['restraint', r.restraint],['operate current Iop', fnum(r.iop)],['restraint current Irt', fnum(r.irt)],
+       ['over slope', r.overSlope?'yes':'no', r.overSlope?'y':'n'],['over min pickup', r.overPickup?'yes':'no', r.overPickup?'y':'n']]);
+    drawTrip(r.operates,'87');
+    setCite('Percentage restrained differential. Operate = |phasor sum of windings|. Restraint = AVERAGE k·Σ|I| (eq. 3) or MAXIMUM (eq. 4), SEL “Percentage of What?”. Table I minimum slopes reproduced: 27/32/36/16%.');
+    setRefuse('<b>It refuses without a named restraint definition.</b> The SEL paper’s whole point is that the SAME currents give a different verdict under AVERAGE vs MAXIMUM. Choose one above and watch Irt change.');
+  } else if (active===25){
+    var relay=sval('rel25');
+    var setting={angleDeg:val('sa25'),slipHz:val('ss25'),vLow:val('vl25'),vHigh:val('vh25')};
+    var cond={angleDeg:val('ca25'),slipHz:val('cs25'),v1:val('v1'),v2:val('v2')};
+    var r=EL.element25(relay,setting,cond);   // throws if relay==''
+    var adv=EL.advanceAngleDeg(val('cs25'), val('cb25')/60);
+    setVerdict(r.inSync?'ok':'trip', r.inSync?'IN SYNC':'blocked',
+      [['relay', r.relay],['angle in window', r.angleOk?'yes':'no', r.angleOk?'y':'n'],
+       ['slip in window', r.slipOk?'yes':'no', r.slipOk?'y':'n'],['voltage in window', r.voltageOk?'yes':'no', r.voltageOk?'y':'n'],
+       ['advance angle', fnum(adv)+' deg']]);
+    drawTrip(!r.inSync,'25');
+    var p=r.provenance;
+    setCite('Synchronism check. Advance angle = slip × 360 × breaker close time (SEL: 0.05 Hz + 5 cycles → 1.5°). This relay: '+p.cite+' — read at '+p.readAt+', '+p.revision+'.');
+    var stale = EL.SYNC_RELAYS[relay] && EL.SYNC_RELAYS[relay].readAt==='MIRROR';
+    setRefuse('<b>It refuses without a named relay.</b> There is no “the” sync check: two SEL product lines disagree by 10x on slip range. '+(stale?'<br><span style="color:var(--warn)">⚠ This profile is a 2017 distributor mirror; its default numbers are not a current publisher fact.</span>':''));
+  } else if (active===86){
+    lockoutState = EL.lockout86(lockoutState, sval('set86')==='1', sval('rst86')==='1');
+    var lo=lockoutState.lockedOut;
+    setVerdict(lo?'trip':(sval('set86')==='0'&&sval('rst86')==='0'?'hold':'ok'), lo?'LOCKED OUT':'clear',
+      [['state', lo?'locked out':'clear', lo?'n':'y'],['type','reset-dominant non-volatile latch']]);
+    drawTrip(lo,'86');
+    setCite('Lockout relay = a reset-dominant non-volatile latch. GE 850 “Non-volatile Latches” truth table (p.4-414). Set with a trip, hold with inputs removed, clear only on a deliberate reset.');
+    setRefuse('<b>Set a trip, then turn it off:</b> it HOLDS (that is the latch). Only a manual reset clears it. Non-volatile means it survives a power-down, like a hand-reset lockout through a station outage. This is not the 850’s autoreclose “lockout”, which merely shares the word.');
+  }
+}
+
+document.getElementById('foot').innerHTML =
+  'Sources per element in <a href="https://github.com/Skeeter-spec/power-service-toolbox/blob/main/projects/04-relay-bench/sources/SOURCES.md">SOURCES.md</a>. '+
+  'Device 51 runs on <a href="https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html">project 02</a>’s engine. '+
+  'Part of the <a href="https://github.com/Skeeter-spec/power-service-toolbox">Power Service Toolbox</a>.';
+
+buildControls();
+render();
+</script>

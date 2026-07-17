@@ -1,0 +1,53 @@
+# Mutants for 04. Run: ./tools/mutate.sh projects/04-relay-bench
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims. Every one MUST make the suite go red. A survivor is
+# a finding: dead code, a coverage hole, or an equivalent mutant no input can distinguish (#14).
+#
+# ⚠ NO PIPE inside a sed expression (the runner splits on '|'). ⚠ Keep each sed to ONE line and ONE
+# side of any published-value-vs-check pair (a WIDE mutant that changes both is "a measurement of
+# nothing" and the runner will say so).
+
+# --- Device 50: threshold, definite time ---
+build/devices.js | s/var pickedUp = current >= device.pickup;/var pickedUp = current > device.pickup;/ | 50 misses pickup at exactly the threshold
+build/devices.js | s/tripTime: pickedUp ? device.delay : Infinity,/tripTime: pickedUp ? device.delay * (current \/ device.pickup) : Infinity,/ | 50 made current-dependent (turned into an inverse curve, which it is not)
+
+# --- Device 51: THE INTERLOCK ---
+build/devices.js | s/return require('..\/..\/02-tcc-coordination\/build\/engine.js');/return null;/ | 51 no longer loads 02's engine (the interlock is severed)
+build/devices.js | s/var t = TCC.tripTime(device, current);/var t = 0.0001;/ | 51 fakes a trip time instead of using 02's verified math
+
+# --- Devices 27 / 59: direction is everything ---
+build/devices.js | s/var pickedUp = voltage <= device.pickup;   \/\/ UNDER/var pickedUp = voltage >= device.pickup;   \/\/ UNDER/ | 27 undervoltage inverted to trip on HIGH voltage
+build/devices.js | s/var pickedUp = voltage >= device.pickup;   \/\/ OVER/var pickedUp = voltage <= device.pickup;   \/\/ OVER/ | 59 overvoltage inverted to trip on LOW voltage
+
+# --- Device 87: Table I reproduction, refusal, and the two definitions ---
+build/devices.js | s/raw = (errPercent \/ ((200 - errPercent) \* k)) \* 100;     \/\/ eq. (5)/raw = (errPercent \/ (200 * k)) * 100;/ | 87 AVERAGE equation (5) missing the (200 - Err) term (Table I stops reproducing)
+build/devices.js | s/raw = errPercent;                                        \/\/ eq. (6)/raw = errPercent * 2;/ | 87 MAXIMUM equation (6) wrong (Table I MAXIMUM row breaks)
+build/devices.js | s/return Math.ceil(raw);   \/\/ minimum slope: round UP for security/return Math.round(raw);/ | 87 rounds to nearest instead of up (31.21 -> 31, not the published 32)
+build/devices.js | s/return k \* mags.reduce/return 1 * mags.reduce/ | 87 AVERAGE ignores the scaling factor k
+build/devices.js | s/return Math.max.apply(null, mags);/return mags.reduce(function (a, b) { return a + b; }, 0);/ | 87 MAXIMUM restraint replaced by a sum (no longer the max)
+build/devices.js | s/throw new Error('87 REFUSED: name the restraint/return k * 0; throw new Error('unreachable'); \/\/ ('87 REFUSED: name the restraint/ | 87 stops refusing an unnamed restraint definition
+build/devices.js | s/var overSlope = iop > slopeFraction \* irt;/var overSlope = iop > 0;/ | 87 operate ignores the slope characteristic entirely
+
+# --- Device 25: advance angle, the relay refusal, the AND, provenance ---
+build/devices.js | s/return slipHz \* 360 \* breakerCloseSeconds;/return slipHz * 180 * breakerCloseSeconds;/ | 25 advance-angle formula wrong (SEL's 1.5 deg not reproduced)
+build/devices.js | s/throw new Error('25 REFUSED: name the relay./return SYNC_RELAYS['sel-751a']; \/\/ ('25 REFUSED: name the relay./ | 25 stops refusing an unnamed relay (invents a default vendor)
+build/devices.js | s/inSync: angleOk && slipOk && vOk,/inSync: angleOk,/ | 25 in-sync AND reduced to angle only (slip and voltage windows ignored)
+build/devices.js | s/var angleOk = Math.abs(condition.angleDeg) <= setting.angleDeg;/var angleOk = true;/ | 25 angle window always satisfied
+
+# --- Device 86: the latch truth table ---
+build/devices.js | s/return prev;                 \/\/ both off: HOLD/return false;                 \/\/ both off: HOLD/ | 86 loses its hold state (both inputs off -> off, so it is no longer a latch)
+build/devices.js | /reset wins a tie/,/return prev/ s/if (reset) return false;/if (set) return true;/ | 86 reset-dominant tie-break broken (RESET no longer clears, SET+RESET latches on)
+
+# ---------------------------------------------------------------------------------------------
+# DELIBERATELY NOT WRITTEN (per #20: only mutate a boundary the source publishes).
+#
+# No mutant for 27/59's exact pickup DELAY value, because no manufacturer worked example with a
+# number was sourced for these elements (SOURCES.md). Their verify asserts direction and timer
+# behaviour, not a sourced number, so a mutant on the delay value would be testing an invented fact.
+# The direction IS mutated (C1/C2/C3), because direction is behaviour the elements define themselves.
+#
+# No mutant for a GE 850 sync DEFAULT number, because those numbers are stale-mirror and the tool is
+# forbidden from presenting them as current (E6 asserts they are flagged). Mutating a value the tool
+# already refuses to assert would test nothing.

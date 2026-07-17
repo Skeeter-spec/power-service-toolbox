@@ -6,9 +6,9 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
     source   done
-    learn    todo
-    build    todo
-    verify   todo
+    learn    done
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -164,4 +164,60 @@ contains finished, verified work.
             - 86: the latch above, asserted against GE's truth table.
             Section F (per #19) must assert the refusals: no C37.112 conformance claim, no unnamed
             curve family, no unnamed sync-check relay, no GE default number presented as current.
+
+2026-07-17  learn + build + verify DONE. 32 checks, 19 mutants, 19 killed. Seven ANSI elements, and
+            they DO NOT verify to one standard of evidence, which is stated not hidden.
+            node verify/verify.js  ·  ./tools/mutate.sh projects/04-relay-bench
+
+            🔴 THE INTERLOCK IS REAL AND LOADED, NOT COPIED. build/devices.js does not reimplement 51:
+            it `require`s 02's engine in node and loads 02's curves.js + engine.js via relative
+            <script src> in the browser. Driven live in a real browser: 51 shows trip time 2.593 s at
+            5.000x pickup, THROUGH project 02, matching GE's published 2.59. If 02 moves, 51 breaks,
+            and that is correct. The refusal survives the reuse: an unnamed 'ieee' family still throws.
+            This is the FIRST plan interlock proven end to end (07-on-01 and 05-into-01 were both false).
+
+            THREE VERIFY SHAPES, all reproduced:
+            - 51: 02's 210-cell table, through 02's engine (above).
+            - 87: reproduces SEL "Percentage of What?" Table I. Err = 4+3+5+10+0+5 = 27 (the paper's
+              own stated sum, p.7). Equations (5) and (6) were RENDERED AT 11x AND READ AS AN IMAGE
+              because the text layer flattened the fraction bar (the trap that made two wrong equations
+              here before). (5) AVERAGE = [Err/((200-Err)k)]*100, (6) MAXIMUM = Err. The four published
+              minimum-slope values 27/32/36/16% reproduce EXACTLY under CEILING rounding, and the
+              ceiling is not arbitrary: these are MINIMUM slopes, so round-up is the secure direction.
+              D2 asserts it is round-UP (raw 31.21 -> published 32), not round-to-nearest.
+            - 25: reproduces SEL's published advance angle = slip*360*CBCT -> 1.5 deg for 0.05 Hz and a
+              5-cycle close, and 18 deg/s as a rate.
+            - 86: reproduces the GE 850 non-volatile latch truth table (set, HOLD on inputs-off, clear
+              on reset, reset wins a tie). Driven live: SET trips, removing SET HOLDS, RESET clears.
+
+            REFUSALS (section F, per #19), and their mutants break NO calculation:
+            - 87 throws without a named restraint definition (the paper's whole point: same currents,
+              different verdict under AVERAGE vs MAXIMUM). D4 shows Irt differs 8 vs 10 for one input.
+            - 25 throws without a named relay (03's ATS law from a third direction; two SEL lines
+              disagree 10x). E4 asserts the 10x. GE default numbers carry readAt=MIRROR + defaultsStale
+              and are never shown as current; the two SEL data-sheet profiles publish NO default.
+            - 27/59 assert DIRECTION and timer behaviour only, with NO sourced number, so no mutant
+              targets a 27/59 delay value (#20: only mutate a boundary the source publishes).
+            - no shipped string claims C37.112 or C37.2 conformance (F1 greps devices.js).
+
+            MUTATION TESTING paid: a real survivor "87 operate ignores the slope" was a coverage hole
+            (verify tested restraintCurrent directly but never that element87's VERDICT depends on
+            slope). Added D6 (same currents operate at 25% slope, restrain at 50%) and D7 (min-pickup
+            floor). Also: the runner caught a WIDE mutant earlier and a NO-OP after I refactored the
+            interlock (the mutant pattern stopped matching the moved line); both fixed.
+
+            QA, BOTH PASSES, DISJOINT FINDINGS AGAIN (fourth project running -> law):
+            - A REAL BUG only the browser found: devices.js declared a top-level `var TCC`, which in a
+              browser is a window global that COLLIDED with 02's own global TCC and clobbered it to
+              null before it could be read. Node never saw it (no window). 51 refused in the browser
+              while passing every node check. Fixed by resolving TCC lazily through getTCC(), no
+              colliding global. This is the interlock's own failure mode and it was invisible to the
+              node suite by construction.
+            - VISUAL, only an eye, both suites green: (a) when 87/25 REFUSE, the throw happened before
+              compute() set its own citation, so the panel showed the PREVIOUS element's cite (87's
+              refusal cited "project 02 engine"). (b) the refusal reason rendered as "whyname the
+              restraint..." with label and value run together. Both fixed by making render()'s catch
+              own the whole refusal presentation.
+
+            NEXT: publish, then live.
 
