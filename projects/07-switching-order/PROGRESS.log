@@ -6,7 +6,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
     source   done
-    learn    todo
+    learn    done
     build    todo
     verify   todo
     publish  todo
@@ -111,3 +111,63 @@ contains finished, verified work.
             NEXT: learn/build. Remember the interlock finding above — 01 has no breakers, so 07 traces
             its OWN device level topology from the Example 1 illustration. That is the cost the plan
             and the hand off both hid inside the word "reuse".
+
+2026-07-17  learn DONE. reference/switching-order-and-clearance-limits.md written longhand.
+            The whole primary was RE READ AT THE PUBLISHER by this session rather than inherited from
+            the entry above, per rule #10. Provenance re checked independently and it HOLDS exactly:
+            curl 200, effective URL == requested URL, metadata names a BPA employee as author with Word
+            as creator, cover names DOE/BPA and both officers. Rule IV.4.C at P-8 survives verbatim.
+            The source phase's own honest grade was worth what it cost: nothing it asserted was wrong.
+
+            🔴 IT WAS INCOMPLETE IN THE ONE WAY THAT MATTERS, AND THE COUNT IS WHY IT SURVIVED.
+            SOURCES.md described the Example 1 figure as "PCB A-10 with A DISCONNECT EITHER SIDE + ground
+            switch 7233". Rendered at 9x and counted the blades: THREE disconnects per terminal, not two.
+            The prose names all three across TWO examples sharing ONE figure — Line Side + Auxiliary Bus
+            (Ex 1, P-45), Main Bus (Ex 2, P-47). The AUXILIARY BUS DISCONNECT HANGS OFF THE LINE NODE,
+            NOT THE BREAKER: close it and the line is fed from the auxiliary bus with A-10 bypassed
+            entirely. A model built from the old sentence CALLS A LINE ISOLATED WHILE IT IS STILL FED.
+            ⚠ THE DEVICE COUNT WAS RIGHT THE WHOLE TIME ("roughly ten operable devices" — correct, 5 per
+            terminal x 2). THAT is why the wrong description lived: the number agreed, so nobody re
+            counted the blades. A CORRECT TOTAL IS NOT A CORRECT MODEL. Same family as 02's naming trap:
+            agreement on a summary statistic is not agreement on the thing.
+            Also recorded: the figure LABELS NO DISCONNECT AT ALL (only the line, A-10/A-3, 7233/7243),
+            so the assignment comes from the PROSE. The drawing alone cannot support it and must not be
+            cited as if it could.
+
+            🔴 THE RECORDED GAP WAS TRUE AND POINTED THE WRONG WAY. "BPA never prints a filled in
+            switching order" is still true after a full re read. But it was written as "the most
+            important gap, it shapes the whole verify phase", and that framing treated the missing step
+            list as the binding constraint. IT IS NOT. BPA DOES NOT PRINT THE STEPS. IT PRINTS THE LIMITS
+            OF A CLEARANCE, on named devices, in at least EIGHT worked examples — and the limits are the
+            harder half. The steps are local and situational; the limits are a property of the circuit
+            and the job, and they are the thing you get wrong and die. 07's README already promised
+            "verify isolation boundaries and the zone of protection". That IS what the document
+            publishes. The source phase stopped one page short of its own best fixture.
+            NEVER RECORDED BEFORE, all with published answers: X.2 Ex 2 (P-47) Test Clearance on A-10
+            itself, limits = Line Side + MAIN BUS, same figure as Ex 1, different question, DIFFERENT
+            ANSWER, each wrong for the other question — the best verify fixture this project has · X.2
+            Ex 3/4 (P-48/49) common limits across adjacent clearances, two tags on the shared device ·
+            X.2 Ex 5 (P-51) limits include the OPEN LOW VOLTAGE device ACB-1 because the alternate
+            station service source back feeds · X.3 Ex 1 (P-52) A SECOND TOPOLOGY: a BYPASS DISCONNECT in
+            PARALLEL with the PCB and both its disconnects, so opening the PCB leaves the feeder
+            ENERGIZED (01's one way bus tie bug, published as a figure — this is what forces the
+            reachability search to be undirected) · X.5 Ex 1 (P-53) transformer differential relays out
+            of service the whole time the Auxiliary Bus Disconnect is closed, the protection zone MOVES ·
+            X.5 Ex 2 (P-54) a PCB "inadequate for line-dropping", so NOT EVERY BREAKER CAN DROP THE LINE.
+
+            🟢 NEGATIVE, checked before writing it the other way: THE RULE'S RATIONALE IS NOT PUBLISHED.
+            I was about to write that IV.4.C exists because a disconnect has no interrupting rating and
+            arcs under load. BPA NEVER SAYS THAT. Searched all 86 pp for load break / under load /
+            interrupt / load current: the rule is bare. The document instead NAMES a "Load-Break
+            Disconnect (LBD)" as its own class (P-54), distinct from PCB and from ordinary isolating
+            device. That is EVIDENCE, NOT A STATEMENT. Assert the ORDER (published). Do not explain it in
+            BPA's voice. This is the repo's own rule catching me one sentence before I broke it.
+
+            NEXT: build. Verify target is now clear and it is NOT a step list diff:
+            (a) encode the P-45 device level graph (3 disconnects + ground switch + PCB per terminal,
+                aux bus disc on the LINE node), (b) compute clearance limits for a requested clearance,
+                (c) reproduce Ex 1's limits AND Ex 2's limits from THE SAME graph, (d) reproduce X.3's
+                bypass topology where the PCB is open and the feeder is live, (e) assert IV.4.C against
+                any emitted sequence. Section F refusals per pattern #19: no step list is published, so
+                the tool must NEVER present a generated sequence as BPA's; and it may not assume every
+                PCB can interrupt.

@@ -106,12 +106,26 @@ control. Only then are the isolating disconnects operated and tagged. That is IV
 named circuit with named devices. A source that states a rule and then obeys it in its own example is
 a source you can build a gate on, in exactly the way 02's manual agreeing with itself three ways was.
 
-**The illustration is a device level one line**, and it was rendered at 3x and read as an image rather
-than reconstructed from the text layer. It carries: the Central-East Columbia No. 3 230 kV line; at the
-Central terminal, PCB A-10 with a disconnect either side of it and ground switch 7233; at the East
-Columbia terminal, PCB A-3 with a disconnect either side and ground switch 7243. Roughly ten operable
-devices across two terminals. That is the model 07 encodes, as connectivity and device kind, the same
-way 01 encoded WP75's figures.
+**The illustration is a device level one line**, and it was rendered and read as an image rather than
+reconstructed from the text layer. It carries: the Central-East Columbia No. 3 230 kV line; at the
+Central terminal, PCB A-10 with **three** disconnects and ground switch 7233; at the East Columbia
+terminal, PCB A-3 with three disconnects and ground switch 7243. Ten operable devices across two
+terminals. That is the model 07 encodes, as connectivity and device kind, the same way 01 encoded
+WP75's figures.
+
+🔴 **CORRECTED 2026-07-17, and the error is instructive enough to leave visible.** This paragraph
+previously said "PCB A-10 with **a disconnect either side** of it". That is a disconnect short, and
+the missing one is the entire point of Example 1. Re reading the figure at 9x and counting blades
+gives **three disconnects per terminal**, and the prose names all three across two examples that share
+the one figure: `A-10 Line Side Disconnect` and `A-10 Auxiliary Bus Disconnect` (Example 1, P-45),
+plus `A-10 Main Bus Disconnect` (Example 2, P-47). The auxiliary bus disconnect hangs off the **line
+node**, not off the breaker, and it is a bypass: close it and the line is fed from the auxiliary bus
+with A-10 out of the picture. **A model built from the old sentence would answer Example 2's question
+when asked Example 1's, and would call a line isolated while it sat fed from the auxiliary bus.** The
+device COUNT in the old sentence ("roughly ten") was right the whole time, which is how the wrong
+description survived: the number agreed, so nobody re counted the blades. Note also that the figure
+labels only the line, the PCBs and the ground switches. **It does not label a single disconnect**, so
+the assignment above comes from the prose, not the drawing, and the drawing alone cannot support it.
 
 ## The second stated rule: grounding order, from a different publisher
 
@@ -170,12 +184,45 @@ survived that re read exactly.
 
 ## Known gaps, stated rather than hidden
 
-- **BPA S-6 never prints a filled in Switching Order.** This is the most important gap and it shapes
-  the whole verify phase. The document describes in prose what a compliant order for Example 1 would
-  accomplish, and it states the ordering rule separately, but there is no numbered "Step 1 / Step 2"
-  order form filled in anywhere in 86 pages. **So verify asserts the RULE against a generated sequence,
-  plus the prose example's stated device order. It cannot diff against a published step list, because
-  no step list is published.** Do not let a future session claim otherwise.
+- **BPA S-6 never prints a filled in Switching Order.** The document describes in prose what a
+  compliant order for Example 1 would accomplish, and it states the ordering rule separately, but there
+  is no numbered "Step 1 / Step 2" order form filled in anywhere in 86 pages. **So verify cannot diff
+  against a published step list, because no step list is published.** Do not let a future session claim
+  otherwise. Re read at the publisher 2026-07-17: still true.
+
+  🔴 **BUT THIS GAP WAS LOAD BEARING IN THE WRONG DIRECTION, corrected 2026-07-17.** It used to open
+  with "this is the most important gap and it shapes the whole verify phase", and that framing treated
+  the absence of a step list as the binding constraint on what 07 could verify. It is not.
+  **BPA does not print the steps. It prints THE LIMITS OF A CLEARANCE, on named devices, in at least
+  eight worked examples**, and the limits are the harder and more valuable half: the steps are local
+  and situational, the limits are a property of the circuit and the job. 07's README already promised
+  "verify isolation boundaries and the zone of protection", which is precisely what the document
+  publishes. The gap is real and narrow; it was recorded as though it were wide.
+
+  **The examples this file never recorded**, all in section X, all with their own published answers:
+  **X.2 Example 2 (P-47)** a Test Clearance on A-10 PCB itself, whose limits are the Line Side and
+  **Main Bus** disconnects. Same figure as Example 1, different question, different answer, and each
+  answer is wrong for the other question. That pair is the single best verify fixture in this project
+  and it was sitting one page past where the source phase stopped reading.
+  **X.2 Examples 3 and 4 (P-48, P-49)** multiple and adjacent clearances, a limit COMMON to two
+  clearances carrying two Do Not Operate tags, and stated tag removal order.
+  **X.2 Example 5 (P-51)** a transformer bank clearance whose limits include the **open low voltage
+  device ACB-1**, because the alternate station service source can back feed into the clearance.
+  **X.3 Example 1 (P-52)** a second topology: a **Bypass Disconnect in parallel** with a PCB and both
+  its disconnects. Open the PCB and the feeder is still energized. This is 01's one way bus tie bug in
+  a published figure, and it is the fixture that forces the reachability search to be undirected.
+  **X.5 Example 1 (P-53)** transformer differential relays must be out of service the entire time the
+  Auxiliary Bus Disconnect is closed: the protection zone moves when the bypass closes.
+  **X.5 Example 2 (P-54)** a PCB "inadequate for line-dropping" in a breaker and a half bay, with the
+  relaying modified so it is never the last to open. **Not every breaker can drop the line**, so a tool
+  that prints "open the PCB" is assuming something this source explicitly contradicts in one bay.
+
+- **The rule's rationale is NOT published, checked 2026-07-17.** IV.4.C states the order and gives no
+  reason. All 86 pages were searched for "load break", "under load", "interrupt", "load current": the
+  rule is bare. What the document does instead is name a **"Load-Break Disconnect (LBD)"** as its own
+  device class (P-54), distinct from both the PCB and the ordinary isolating device. That distinction
+  is evidence, and it is not a statement, and this repo does not get to publish the physics lesson as
+  though BPA taught it. Assert the ORDER, which is published. Do not explain it in BPA's voice.
 - **BPA's portable grounding rules (G-1, G-7) are in a separate BPA Accident Prevention Manual that
   was not fetched.** S-6 section VI.8 defers to it. So BPA's own full portable ground install and
   remove sequence has not been read here; the grounding order above comes from 29 CFR 1910.269(n)(6),
