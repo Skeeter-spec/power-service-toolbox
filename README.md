@@ -123,7 +123,7 @@ A green test suite proves nothing until you have watched it go red.
       build/           the app
     reference/         glossary and one pagers, written longhand
     tools/
-      gate.sh          runs all five checks below. This is the rule, as a command
+      gate.sh          runs every check below. This is the rule, as a command
       mutate.sh        breaks the code on purpose to prove the suite can fail
       check_sources.py fails on any citation with no stated verification level
       build_readme.py  generates the status block above from the PROGRESS.log files
@@ -132,7 +132,8 @@ A green test suite proves nothing until you have watched it go red.
 
     ./tools/gate.sh
 
-Five checks, and each one exists because it already failed once here:
+Five checks in four steps (the last step checks the README's two copies of the live set against the
+same source), and each one exists because it already failed once here:
 
 | Check | Because |
 |---|---|

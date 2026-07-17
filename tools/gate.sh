@@ -56,7 +56,7 @@ echo "[3/4] source audit"
 python3 tools/check_sources.py || fail=1
 
 echo ""
-echo "[4/4] README status block"
+echo "[4/4] README status block and tools table"
 python3 tools/build_readme.py --check || fail=1
 
 echo ""
