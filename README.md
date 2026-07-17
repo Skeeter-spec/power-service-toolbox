@@ -123,7 +123,7 @@ A green test suite proves nothing until you have watched it go red.
       build/           the app
     reference/         glossary and one pagers, written longhand
     tools/
-      gate.sh          runs all four checks below. This is the rule, as a command
+      gate.sh          runs all five checks below. This is the rule, as a command
       mutate.sh        breaks the code on purpose to prove the suite can fail
       check_sources.py fails on any citation with no stated verification level
       build_readme.py  generates the status block above from the PROGRESS.log files
@@ -132,7 +132,7 @@ A green test suite proves nothing until you have watched it go red.
 
     ./tools/gate.sh
 
-Four checks, and each one exists because it already failed once here:
+Five checks, and each one exists because it already failed once here:
 
 | Check | Because |
 |---|---|
@@ -140,6 +140,7 @@ Four checks, and each one exists because it already failed once here:
 | every suite can actually **fail** | a green suite proves nothing until you have watched it go red |
 | every citation states how far it was verified | this repo's whole claim is "I checked" |
 | the status block matches the `PROGRESS.log` files | it said "no tool is live yet" after 01 was live |
+| the tools table's ✅ live badges match them too | the status block was not the only copy, and the other one badged a tool that had not shipped |
 
 Nonzero exit on any failure, so it gates rather than advises.
 
