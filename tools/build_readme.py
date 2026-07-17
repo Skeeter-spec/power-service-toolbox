@@ -68,8 +68,52 @@ def render(projects):
             # rule is no dash characters in it. The dash-check hook caught exactly this line.
             out.append(f"- **{num}. {p['title'].split(' ', 1)[1] if ' ' in p['title'] else p['title']}**: "
                        f"[live demo]({PAGES}/projects/{p['slug']}/build/index.html)")
+
+        # The remainder count lives INSIDE the fence for the same reason the live count does. It
+        # sat outside as the hand typed words "The other nine are folders and a plan", one line
+        # below the paragraph explaining that a status typed into prose is a copy and a copy rots.
+        # Written when 01 was the only live tool, it still said nine when four were live. The
+        # paragraph was right. It just could not see itself.
+        rest = len(projects) - n
+        rest_word = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+                     7: "seven", 8: "eight", 9: "nine"}.get(rest, str(rest))
+        out.append("")
+        if rest == 0:
+            out.append("Nothing is left in the plan. All ten are live.")
+        else:
+            out.append(f"The other {rest_word} {'is' if rest == 1 else 'are'} folders and a plan.")
     out += ["", END]
     return "\n".join(out)
+
+
+def check_table(projects, text):
+    """The tool table's ✅ live badges are a SECOND copy of the live set, outside the fence.
+
+    The generated block is not the only place this README states who is live. The tools table does
+    it too, in a badge on each row, hand typed. That copy has already shipped wrong once: a row
+    carried ✅ live for a tool that had not shipped. Generating the table is overkill (its prose is
+    the interesting part and it is written by hand on purpose), so this compares the two copies and
+    fails on disagreement. A copy you cannot delete is a copy you check.
+
+    Returns a list of complaint strings, empty if the two agree.
+    """
+    live = {p["slug"].split("-")[0] for p in projects if p["phases"]["live"] == "done"}
+    badged, problems = set(), []
+    for line in text.splitlines():
+        m = re.match(r"\|\s*(\d\d)\s*\|(.*)\|", line)
+        if not m:
+            continue
+        num, body = m.group(1), m.group(2)
+        if "live" in body and "✅" in body:
+            badged.add(num)
+
+    for num in sorted(badged - live):
+        problems.append(f"      table row {num} is badged ✅ live, but its PROGRESS.log is not live=done.\n"
+                        f"      That is the README claiming a tool that has not shipped.")
+    for num in sorted(live - badged):
+        problems.append(f"      table row {num} has no ✅ live badge, but its PROGRESS.log says live=done.\n"
+                        f"      The tool shipped and the table did not notice.")
+    return problems
 
 
 def main():
@@ -93,8 +137,15 @@ def main():
             print("      This is the exact failure that shipped on 2026-07-15.")
             print("      Fix: ./tools/build_readme.py")
             return 1
+        problems = check_table(projects, t)
+        if problems:
+            print("FAIL: the tools table disagrees with the PROGRESS.log files.")
+            print("      This one is hand written, so fix the row, not the generator.")
+            for p in problems:
+                print(p)
+            return 1
         live = sum(1 for p in projects if p["phases"]["live"] == "done")
-        print(f"  README status: in sync ({live} live of {len(projects)})")
+        print(f"  README status: in sync ({live} live of {len(projects)}, table badges agree)")
         return 0
 
     readme.write_text(new)

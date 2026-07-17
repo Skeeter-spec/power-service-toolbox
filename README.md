@@ -81,14 +81,26 @@ The first four carry the weight. The rest round out the trade.
 - **03. ATS sequence simulator**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/03-ats-sequence/build/index.html)
 - **05. Modbus meter test bench**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)
 
+The other six are folders and a plan.
+
 <!-- END GENERATED: status -->
 
-The other nine are folders and a plan. Each project's `PROGRESS.log` is the source of truth for where
-it stands, and the block above is generated from those files rather than typed by hand. That is not
-fussiness: this section previously said "no tool is live yet" for a while after 01 went live, because
-a status typed into prose is a copy, and a copy rots. `./tools/gate.sh` fails if it drifts again.
+Each project's `PROGRESS.log` is the source of truth for where it stands, and the block above is
+generated from those files rather than typed by hand. That is not fussiness: this section previously
+said "no tool is live yet" for a while after 01 went live, because a status typed into prose is a
+copy, and a copy rots. `./tools/gate.sh` fails if it drifts again.
 
-Building in order: 01, then 02, 03, 04. The next one does not start until the current one verifies.
+That paragraph then proved its own point. The words "the other nine are folders and a plan" sat one
+line below it, outside the generated fence, hand typed when 01 was the only live tool, still saying
+nine when four were live. The rule was correct and written down and the sentence next to it rotted
+anyway, because a rule you have to remember is not a mechanism. The count is inside the fence now.
+
+Order of work: 01, 02, 03, then 05. Not a typo. 04 is the relay bench, and it is parked at `source`
+because two of its seven ANSI device numbers have nothing citable behind them: the only primary for
+25 sync check answers HTTP 403, and 86 is a latch with no published math to reproduce at all. The
+gate is on publishing, not on sequence, so rather than fill those two in from a search engine's
+synthesis and call it sourced, 04 waits and 05 went ahead. A tool stalled at `source` is the rule
+working. It is the only part of this repo that ever gets to say no on your behalf.
 
 **What the gate cost 01, since that is the only honest way to show a rule is real.** Mutation testing
 the verify suite (breaking the engine on purpose to prove the tests could go red) found that an entire
