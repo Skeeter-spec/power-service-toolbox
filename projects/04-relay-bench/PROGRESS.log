@@ -9,8 +9,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     learn    done
     build    done
     verify   done
-    publish  todo
-    live     todo
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -220,4 +220,19 @@ contains finished, verified work.
               own the whole refusal presentation.
 
             NEXT: publish, then live.
+
+2026-07-17  publish + live DONE. Pushed, gate passed first.
+            https://skeeter-spec.github.io/power-service-toolbox/projects/04-relay-bench/build/index.html
+            Sixth tool live.
+            VERIFIED 01's way (the site is blocked in both browser surfaces): fetched the served
+            files, confirmed byte-identical to the local copies driven in a real browser, and ran the
+            full suite against the DOWNLOAD. But the interlock made this stricter than any prior
+            project: 51 loads 02's curves.js + engine.js, so I fetched THOSE from Pages too (both
+            200, byte-identical) and reconstructed the repo layout so verify's cross-project require
+            resolved against SERVED 02 bytes. 32/32 against the served set.
+            🔴 CONTROL DEMANDED, not assumed: corrupting the served devices.js 87 equation takes it to
+            31 passed / 1 FAILED, exit 1. The green measures the served bytes.
+            ⚠ A cmp on the first fetch reported DIFFERS while the deploy was still propagating; a diff
+            a minute later showed byte-identical. Same lesson as 07's 503: a single post-push fetch is
+            not trustworthy until it settles. Confirmed identity three ways (size, diff, cmp).
 
