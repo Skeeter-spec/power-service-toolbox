@@ -3,10 +3,13 @@
 Citations only. No copyrighted document is reproduced or redistributed here, including the ones that
 are free to download. Where a source is free, the link goes to the publisher so you fetch it from them.
 
-Each entry says how far it was actually verified. **This project's source phase is deliberately still
-`wip`**: devices 50, 51 and 87 are sourced to primaries, and devices 25 and 86 are not. That split is
-stated here rather than smoothed over, because a bench that models seven devices to two different
-standards of evidence is exactly the failure this repo exists to avoid.
+Each entry says how far it was actually verified. **Source phase completed 2026-07-17.** It was held
+`wip` for a long time on purpose, because devices 25 and 86 were sourced to a lower standard than
+50/51/87, and a bench that models seven devices to two different standards of evidence is exactly the
+failure this repo exists to avoid. Both are now sourced to published documents (device 25 to SEL and
+Beckwith at the publisher plus a reproduced SEL worked example; device 86 to the GE 850's Non-volatile
+Latch truth table), so the split is closed. Provenance caveats travel into the build and are stated per
+device below.
 
 ## Source audit
 
@@ -28,6 +31,7 @@ Levels, strongest first: **TRACED** (read, and figures or data traced out) · **
 | SEL, Fundamentals and Advancements in Generator Synchronizing Systems (M. J. Thompson, 2012), advance-angle worked example, p.5 | TRACED | https://cms-cdn.selinc.com/assets/Literature/Publications/Technical%20Papers/6459_FundamentalsAdvancements_MT_20120402_Web2.pdf | PUBLISHER |
 | Beckwith M-3410A Intertie/Generator Protection Relay Specification, Sync Check (25) table, p.3 | READ IN FULL | https://beckwithelectric.com/wp-content/uploads/docs/product-specs/M-3410A-SP.pdf | PUBLISHER |
 | GE Multilin 850 Instruction Manual v2.0x (2017), Synchrocheck defaults + dead-source logic, pp.4-335 to 4-337 | READ IN FULL | https://docs.ips.us/docs/W1002150.pdf | MIRROR |
+| GE Multilin 850 Instruction Manual v2.0x (2017), Non-volatile Latch truth table (device 86 behaviour), p.4-414 | TRACED | https://docs.ips.us/docs/W1002150.pdf | MIRROR |
 | GE Vernova Grid Solutions, 850 resources page (page reachable; current manual v4.3x download is login walled) | LOCATED ONLY | https://www.gevernova.com/grid-solutions/resources?prod=850&type=3 | PUBLISHER |
 | Basler BE1-25 Sync-Check Relay product page (manual not reachable at publisher) | LOCATED ONLY | https://www.basler.com/product/be1-25-sync-check-relay/ | PUBLISHER |
 | Electrical Engineering Portal, sync check (ANSI 25) function | LOCATED ONLY | https://electrical-engineering-portal.com/generator-synchronizing-check-protective-function | PUBLISHER |
@@ -204,14 +208,49 @@ not manufacture a percentage to match ASCO.** (Beckwith DOES publish a delta vol
 of nominal, on the M-3410A spec sheet, so if a percentage is wanted, it is Beckwith's, cited to
 Beckwith, not SEL's.)
 
-## Device 86: no published example exists, and that is the correct answer
+## Device 86: SOURCED 2026-07-17 to the GE 850's Non-volatile Latch truth table.
 
-Device 86 is a latching auxiliary relay. It has no time current characteristic, so there is nothing to
-compute and nobody publishes a numeric example of a latch. The behaviours to verify are that it
-latches on any trip input, stays latched, and clears only on an explicit reset.
+Device 86 is a lockout relay: a latching auxiliary relay with no time current characteristic, so there
+is no numeric example to reproduce. Its behaviour is what gets verified. The earlier state was "nothing
+about 86 was sourced from a document; the description is domain knowledge, not a citation." **It now has
+a document, and the document publishes a truth table.**
 
-**Stated plainly: nothing about 86 was sourced from a document in this pass.** The description above is
-domain knowledge, not a citation. It is low risk and it is still not evidence, so it is labelled.
+**The primary: GE Multilin 850 Instruction Manual, "Non-volatile Latches", manual p.4-414 (PDF p.546),
+rendered at 9x and read as an image because it is a table and the text layer stitches tables.** The 850
+does not label an element "86", and that distinction is kept rather than smoothed: a device 86 lockout
+relay IS a latch, and the 850's Non-volatile Latch is the latch primitive the manual documents. GE's
+own stated purpose for it is the lockout function verbatim:
+
+> "The purpose of a Non-volatile Latch is to provide a permanent logical flag that is stored safely and
+> does not reset when the relay reboots after being powered down. Typical applications include
+> sustaining operator commands or permanently blocking relay functions such as Autorecloser, until a
+> deliberate HMI action resets the latch."
+
+The published truth table, Reset Dominant type, gives the four behaviours the bench asserts:
+
+| SET | RESET | Latch output | What it means for an 86 |
+|---|---|---|---|
+| On | Off | **On** | a trip input sets the lockout |
+| Off | Off | **Previous State** | **input removed, state HELD. This is the latch.** |
+| On | On | **Off** | Reset Dominant: reset wins a simultaneous set (you can always clear it) |
+| Off | On | **Off** | a deliberate reset clears it |
+
+Plus the non-volatile property from the quote: **the latch survives a power-down**, which is exactly
+what a hand-reset lockout relay does (it stays tripped through a station outage and still requires a
+person to reset it).
+
+⚠ **DO NOT CONFUSE THIS WITH THE 850's "RECLOSURE LOCKOUT" (p.4-377).** That is the autoreclose
+scheme reaching its shot limit, a different function that merely shares the word "lockout." The 86
+latch behaviour is sourced to the Non-volatile Latch element, not to the autoreclose lockout. The
+manual separately names an external "86-T" transformer lockout relay it interfaces with (p.4-357),
+which confirms 86 is the number for the hand-reset lockout device, cited to IEEE C37.2 by number only.
+
+🔴 **PROVENANCE: this is the same v2.0x (2017) `docs.ips.us` distributor mirror as device 25, and the
+same rule applies, LOW RISK HERE FOR A STRUCTURAL REASON.** What is cited is a LOGIC PRIMITIVE, a
+reset-dominant non-volatile set/reset latch, not a tuned setpoint. A latch truth table is a definition,
+not a number a firmware revision retunes, so the stale-revision risk that applies to device 25's GE
+default values (0.20 Hz etc.) does not apply to this table in the same way. It is still a mirror and is
+still labelled: current revision (v4.3x, login walled) unread.
 
 ## Deliberately not used
 
@@ -237,9 +276,10 @@ domain knowledge, not a citation. It is low risk and it is still not evidence, s
 - **The GE "ANSI curves" equation form is unconfirmed.** The five constants were extracted from the
   text layer, but the equation image was not rendered and read the way the IEEE family's was. Do not
   build the ANSI family on this file.
-- **Device 25 is now sourced** (2026-07-17, SEL + Beckwith at the publisher, GE 850 defaults on a
-  stale mirror and labelled as such). **Device 86 is still not sourced from a document.** It is a
-  latch, so there is no number to publish, and the honest options are two: cite its latching logic
-  from a manual already in hand (the GE 850's own lockout description), or model it as a pure latch
-  and cite C37.2 by number for the device meaning only. Until one is chosen, the split that keeps
-  the source phase `wip` is 86 alone, not 25.
+- **All seven devices are now sourced (2026-07-17).** 50/51 and 87 to publisher-adjacent primaries
+  with worked examples; 25 to SEL and Beckwith at the publisher (ranges) plus a reproduced SEL advance
+  angle example, with GE 850 defaults on a labelled stale mirror; 86 to the GE 850's Non-volatile
+  Latch truth table. The two-standards-of-evidence split that kept this phase `wip` is closed: no
+  device is modelled on domain knowledge alone any more. **Source flips to done.** What remains is the
+  build, and the provenance caveats above travel with it (name the relay for 25; label or drop the GE
+  default numbers; the latch table is a structural primitive, low stale-risk).

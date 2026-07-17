@@ -5,7 +5,7 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   wip
+    source   done
     learn    todo
     build    todo
     verify   todo
@@ -130,4 +130,38 @@ contains finished, verified work.
             (a) cite the GE 850's own lockout/latching description (a manual already in hand) for the
                 behaviour, or (b) model it as a pure latch and cite C37.2 by number for the device
                 meaning only. Either is fine; leaving it undocumented is not.
+
+2026-07-17  source: DONE. Device 86 sourced, closing the last gap; all seven devices now rest on a
+            published document and the two-standards-of-evidence split is closed.
+            86 is a lockout relay = a latch, no number to reproduce, so the BEHAVIOUR is the source.
+            Primary: GE 850 "Non-volatile Latches", p.4-414, rendered at 9x and read as an IMAGE (it
+            is a table; text layers stitch tables). GE's stated purpose is the lockout function
+            verbatim: "a permanent logical flag ... does not reset when the relay reboots ...
+            permanently blocking relay functions ... until a deliberate HMI action resets the latch."
+            Published truth table, Reset Dominant: SET on -> ON; SET off & RESET off -> PREVIOUS STATE
+            (the latch); RESET on -> OFF; SET+RESET -> OFF (reset wins, so it can always be cleared);
+            and non-volatile, so it survives a power-down exactly like a hand-reset lockout.
+            🔴 NAMING KEPT HONEST: the 850 labels no element "86". It DOES document the latch
+            primitive an 86 is built from, and separately names an external "86-T" lockout relay
+            (p.4-357). Do NOT confuse this with the 850's "Reclosure Lockout" (p.4-377), which is the
+            autoreclose shot-limit state sharing only the word. 86 as a device number is C37.2, cited
+            by number only.
+            PROVENANCE: same v2.0x (2017) docs.ips.us mirror as 25, but LOW stale-risk for a
+            structural reason: a reset-dominant non-volatile latch is a LOGIC PRIMITIVE, not a tuned
+            setpoint a firmware revision retunes. Labelled anyway; current v4.3x login walled, unread.
+
+            NEXT: learn, then build. Seven devices, three verify shapes already proven:
+            - 50: instantaneous THRESHOLD (built here, NOT in 02: a threshold is not a curve).
+            - 51: curve math REUSED from 02's engine (interlock verified 2.5934 s vs GE 2.59), and
+              02's "name the vendor family or throw" refusal comes with it.
+            - 87: percentage restrained differential; the bench MUST pick AVERAGE or MAXIMUM restraint
+              and say which on screen (SEL Thompson paper: the verdict changes with the choice).
+            - 27/59: definite-time, verified against their own stated timer behaviour (no sourced
+              number, so do not imply parity with 51).
+            - 25: sync check; NAME the relay, quote its published ranges, reproduce SEL advance angle
+              (1.5 deg), REFUSE without a named relay (03's law from a third direction). No default on
+              screen unless read at a current publisher copy; the GE defaults are stale-mirror.
+            - 86: the latch above, asserted against GE's truth table.
+            Section F (per #19) must assert the refusals: no C37.112 conformance claim, no unnamed
+            curve family, no unnamed sync-check relay, no GE default number presented as current.
 
