@@ -28,8 +28,31 @@ Levels, strongest first: **TRACED** (read, and figures or data traced out) · **
 | IEEE C37.112, Inverse Time Characteristic Equations for Overcurrent Relays | GATED, UNREAD | none | NONE |
 | IEC 60255-151 | GATED, UNREAD | none | NONE |
 
-The top three rows were read directly at the publisher's own PDF. Everything below is context or a
-lead.
+🔴 **CORRECTED 2026-07-17, AND THE ERROR IS THE WHOLE REASON THE `Read at` COLUMN EXISTS, SO IT IS
+LEFT VISIBLE.** This line used to say *"The top three rows were read directly at the publisher's own
+PDF."* **Its own table, three lines above, says otherwise on two of those three, and the table is
+right.**
+
+- **Row 2 only** is read at the publisher: the SEL technical paper comes from SEL's own CDN.
+- **Row 1, the GE Multilin 850, is read at `docs.ips.us`, a DISTRIBUTOR's document store.** Not a
+  skipped step: GE's own download is login walled and GE no longer offers this version at all, so
+  "read it at the publisher" does not exist for this document. That is why a MIRROR warns here and
+  does not fail.
+- **Row 3, the SEL-351S, is read at a UNIVERSITY COURSE HANDOUT.** That is precisely the chain of
+  custody that produced two different wrong equations in this repo's history, from two independent
+  passes, neither matching the real manual.
+
+**HOW THE FALSE SENTENCE SURVIVED, which is the reusable part.** Pattern #10 was learned when 02's
+SOURCES.md made this identical claim two lines above a distributor's URL. The fix was to stop
+trusting prose and add a machine checked field: the `Read at` column, required by
+`tools/check_sources.py`. **The column was added. The prose it was meant to replace was left
+standing.** So the false statement went on sitting directly beneath its own correction, and the gate
+could not see it, because the gate checks that every row HAS a provenance value, not that the
+paragraph agrees with the column.
+
+⇒ **WHEN YOU REPLACE A PROSE CLAIM WITH A CHECKED FIELD, DELETE THE PROSE. A summary of a table is a
+copy, and a copy rots, or as here was never true.** The table is the statement. Everything below
+it is context or a lead.
 
 ---
 

@@ -54,3 +54,44 @@ contains finished, verified work.
             Inverse" and they are different equations. SEL's "US" curves are a third reusing the same
             labels. A LABEL DOES NOT IDENTIFY A CURVE. Pick one family, name its manual, never mix.
             Claim no C37.112 conformance (gated, and GE and SEL cite it over different numbers).
+
+2026-07-17  source still wip (25 and 86 unsourced; two workers hunting 25 at the publisher). Three
+            findings from this pass, none of which needed the source phase to finish.
+
+            ✅ THE 02 -> 04 INTERLOCK IS REAL, AND IT IS NOW MEASURED RATHER THAN CLAIMED. This is
+            the FIRST of the plan's three interlocks to survive being checked, and the score is worth
+            keeping: 07 planning on 01's one line was measurably FALSE (01 has eleven node types and
+            not one is a breaker), 05 feeding readings into 01 was FALSE at both ends (05 ships no
+            meter, 01 has no meters), and both were LIVE in the root README until today. This one
+            holds. Rule #17 says an interlock in a plan is a HYPOTHESIS, so it was driven, not read:
+              require 02/build/engine.js + curves.js from a 04 shaped call
+              relay = { family: 'ge850-ieee', shape: 'extremely-inverse', pickup: 100, tdm: 2 }
+              TCC.tripTime(relay, 500)  ->  2.5934 s
+            GE's manual p.4-124 publishes "will not occur before 2.59 s" for exactly those settings.
+            02 already exports everything device 51 needs: tripTime, multiple, resetTime, curvePoints,
+            plus named vendor families. 04 writes no curve math.
+            🔑 AND THE REFUSAL SURVIVES THE REUSE, which matters more than the saved code: calling
+            tripTime with a generic family 'ieee' still THROWS ("unknown curve family: ieee. Families
+            are named per vendor on purpose."). 04 inherits 02's refusal for free rather than
+            laundering it away. An interlock that carried the code but dropped the refusal would be a
+            downgrade.
+            ⚠ WHAT THE INTERLOCK DOES NOT COVER: device 50 is NOT in 02 and should not be. An
+            instantaneous element is a THRESHOLD, not a curve; 02 models curves. 04 builds 50 itself.
+
+            🔴 SOURCES.md CARRIED A FALSE PROVENANCE CLAIM, IN PROSE, THREE LINES UNDER THE TABLE THAT
+            DISPROVED IT. It said "The top three rows were read directly at the publisher's own PDF."
+            The table says row 1 (GE 850, docs.ips.us) is a MIRROR and row 3 (SEL-351S) is a MIRROR
+            read at a UNIVERSITY COURSE HANDOUT. Only row 2 is a publisher read. Corrected, and left
+            visible.
+            HOW IT SURVIVED IS THE REUSABLE PART. Pattern #10 was learned when 02's SOURCES.md made
+            this IDENTICAL claim two lines above a distributor's URL. The fix was to stop trusting
+            prose and add a machine checked field, the `Read at` column. **The column was added and
+            the prose it was meant to replace was left standing**, so the false sentence went on
+            sitting directly beneath its own correction. The gate cannot see it: check_sources.py
+            asserts every row HAS a provenance value, not that the paragraph agrees with the column.
+            ⇒ WHEN YOU REPLACE A PROSE CLAIM WITH A CHECKED FIELD, DELETE THE PROSE. Swept all six
+            SOURCES.md for the phrase; 04 was the only one still carrying it.
+
+            NEXT: 25 (workers running), then a decision on 86. Do not build until 25 is sourced or
+            cut: the split (50/51/87 sourced, 25/86 not) is the whole reason this phase is still wip.
+
