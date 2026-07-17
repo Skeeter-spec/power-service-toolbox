@@ -131,8 +131,11 @@ while IFS='|' read -r target expr desc; do
     # The sed matched nothing, so this mutant never existed. That is a silent false PASS:
     # the suite "survived" a mutation that was never applied. Catch it loudly.
     echo "  NO-OP      $desc"
-    echo "             ^ the sed changed NOTHING. The expression is stale, probably because the code"
-    echo "               moved. Fix the mutant, or you are testing an illusion."
+    echo "             ^ the sed changed NOTHING. Two common causes: (1) the expression is stale"
+    echo "               because the code moved; (2) the pattern spans lines with a \\n, and BSD sed"
+    echo "               (macOS) works ONE LINE AT A TIME, so a \\n in the PATTERN matches nothing."
+    echo "               Fix: match a single line, or scope a region with an address range"
+    echo "               /start/,/end/ s/one-line-pat/repl/ . Otherwise you are testing an illusion."
     survived=$((survived + 1))
     cp "$TMP/orig" "$f"
     continue
