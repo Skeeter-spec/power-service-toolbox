@@ -23,6 +23,13 @@ Levels, strongest first: **TRACED** (read, and figures or data traced out) · **
 | TM 5-811-14 Ch.4, Protective Devices Coordination (US Army Corps of Engineers, public domain) | READ IN FULL | https://www.pdhonline.com/courses/e119/TM5-811-14-chap4.pdf | MIRROR |
 | CED Engineering, Overcurrent Protection Fundamentals | FETCHED, NOT READ | https://www.cedengineering.com/userfiles/Overcurrent%20Protection%20Fundamentals-R1.pdf | PUBLISHER |
 | SEL-387 Current Differential and Overcurrent Relay manual | CITED, UNREAD | https://selinc.com/api/download/292/ | PUBLISHER |
+| SEL-751A Data Sheet (Date Code 20250411), Synchronism Check (25) ranges, p.23 | READ IN FULL | https://selinc.com/api/download/2822/ | PUBLISHER |
+| SEL-451-6 Data Sheet (Date Code 20260217), Synchronism-Check Elements ranges, p.26 | READ IN FULL | https://selinc.com/api/download/124252/ | PUBLISHER |
+| SEL, Fundamentals and Advancements in Generator Synchronizing Systems (M. J. Thompson, 2012), advance-angle worked example, p.5 | TRACED | https://cms-cdn.selinc.com/assets/Literature/Publications/Technical%20Papers/6459_FundamentalsAdvancements_MT_20120402_Web2.pdf | PUBLISHER |
+| Beckwith M-3410A Intertie/Generator Protection Relay Specification, Sync Check (25) table, p.3 | READ IN FULL | https://beckwithelectric.com/wp-content/uploads/docs/product-specs/M-3410A-SP.pdf | PUBLISHER |
+| GE Multilin 850 Instruction Manual v2.0x (2017), Synchrocheck defaults + dead-source logic, pp.4-335 to 4-337 | READ IN FULL | https://docs.ips.us/docs/W1002150.pdf | MIRROR |
+| GE Vernova Grid Solutions, 850 resources page (page reachable; current manual v4.3x download is login walled) | LOCATED ONLY | https://www.gevernova.com/grid-solutions/resources?prod=850&type=3 | PUBLISHER |
+| Basler BE1-25 Sync-Check Relay product page (manual not reachable at publisher) | LOCATED ONLY | https://www.basler.com/product/be1-25-sync-check-relay/ | PUBLISHER |
 | Electrical Engineering Portal, sync check (ANSI 25) function | LOCATED ONLY | https://electrical-engineering-portal.com/generator-synchronizing-check-protective-function | PUBLISHER |
 | IEEE C37.2, Electrical Power System Device Function Numbers | GATED, UNREAD | none | NONE |
 | IEEE C37.112, Inverse Time Characteristic Equations for Overcurrent Relays | GATED, UNREAD | none | NONE |
@@ -127,20 +134,75 @@ DROPOUT DELAY). **No published numeric worked example was found for either devic
 here are about timer behaviour, not about a sourced number, and the file says so rather than implying
 parity with the 51 evidence.
 
-## Device 25: NOT SOURCED. Do not build it yet.
+## Device 25: SOURCED 2026-07-17, and the finding is the LAW, not the numbers.
 
-This is the weakest link in the whole project and the honest state is that it has no primary. The one
-candidate page returned HTTP 403 and was never read. Numeric ranges seen in a search engine's
-synthesized summary (phase angle roughly 10 to 20 degrees, slip roughly 0.1 to 0.2 Hz, voltage
-difference roughly 2 to 5%) are **UNVERIFIED and are not citation ready**. They are recorded here as a
-lead and nothing more.
+The earlier state was "NO PRIMARY, one candidate returned 403, and the ranges floating around
+(10-20 deg, 0.1-0.2 Hz, 2-5%) are a search engine's synthesis, not citation ready." **That synthesis
+is now confirmed to have been wrong as well as unsourced**: no publisher document matches it. It is
+struck.
 
-**The fix is already known and is cheap.** Project 03 traced a genuine published sync criterion from a
-manufacturer's own manual, in its own words: phase difference under 5 degrees, frequency difference
-under 0.2 Hz, voltage difference under 5%. See `projects/03-ats-sequence/sources/SOURCES.md`. That is
-an ATS closed transition criterion rather than a relay sync check element, so it is not simply
-transplantable, but it proves this class of number is publishable and findable. Fetch an SEL, GE,
-Basler or Beckwith sync check application guide before building the 25 element.
+**METHOD: two workers, opposite vendors, on purpose** (pattern #12). One was told to start at GE /
+Basler / Beckwith and NOT at SEL; the other was told to start at SEL and nothing else. Neither knew
+what the other found. They covered disjoint manufacturers, so there is no single number to compare,
+but **they converged on the same domain law independently, and that convergence is the evidence.**
+
+🔴 **THE LAW: THERE IS NO "THE" SYNC CHECK, exactly as 03 proved there is no "the" ATS, reached here
+from a THIRD direction.** The measured divergence, all at the publisher, all current revisions:
+
+| Relay | Slip freq range | Angle range | Read at | Revision |
+|---|---|---|---|---|
+| SEL-751A | 0.05 to 0.50 Hz | 0 to 80 deg | PUBLISHER (data sheet) | 2025-04-11, current |
+| SEL-451-6 | **0.005 to 0.500 Hz** | **3 to 80 deg** | PUBLISHER (data sheet) | 2026-02-17, current |
+| Beckwith M-3410A | delta freq 0.001 to 0.500 Hz | 0 to 90 deg | PUBLISHER (spec sheet) | current |
+| GE 850 | 0.01 to 5.00 Hz, **default 0.20 Hz** | 1 to 100 deg, **default 20 deg** | MIRROR, STALE (see below) | v2.0x, 2017 |
+
+**Two SEL product lines disagree with each other by 10x on slip range.** So the 25 element must name
+its relay and quote that relay's own numbers, and it must refuse to run without one, the same way 02's
+engine throws without a named curve family and 03's throws without a named vendor. **This is not a
+gap; it is the domain fact the bench exists to teach.** Both workers reached the recommendation
+independently.
+
+**A REPRODUCIBLE WORKED EXAMPLE EXISTS, and it is verified.** SEL's own paper "Fundamentals and
+Advancements in Generator Synchronizing Systems" (M. J. Thompson, read at `cms-cdn.selinc.com`, page 5,
+rendered as an image) publishes the slip-compensated advance angle and a worked value:
+
+> "using 0.05 Hz slip and a breaker close delay of 5 cycles, the advanced angle would be 1.5 degrees."
+
+The published formula is advance angle = slip x 360 x CBCT (breaker close time in seconds). Recomputed
+here: 0.05 Hz x 360 x (5/60 s) = **1.5 deg exactly**, and slip as a rate is 0.05 x 360 = **18 deg/s**,
+which the same page also states. Two published numbers, both reproduced. That is 02's shape (published
+equation plus published answer) and it is the verify fixture for the 25 element's timing.
+
+🔴 **PROVENANCE, AND DO NOT COLLAPSE THE TWO KINDS OF NUMBER.**
+- **SEL-751A, SEL-451-6, Beckwith M-3410A** are read at the PUBLISHER, current revision, and give
+  RANGES and accuracies. **None publishes a factory DEFAULT** (defaults live in the full instruction
+  manuals, which SEL, Beckwith and Basler all gate). So the bench may quote a range at the publisher,
+  and may NOT quote a default it did not read.
+- **GE 850 is the only source with full defaults, hysteresis, and dead-source Boolean logic** (its
+  `DEAD SOURCE PERM` element, six permissive modes), **but it was read at a DISTRIBUTOR mirror
+  (`docs.ips.us`) at v2.0x (2017), and GE currently ships v4.3x (2026), login walled.** This is #18
+  exactly: a mirror can be authentic and still the wrong revision. The dead-source LOGIC STRUCTURE is
+  safe to describe (it is a design pattern, not a number). The GE default NUMBERS (0.20 Hz / 20 deg /
+  2000 V) are stale-revision risk and must be labelled "GE 850 v2.0x (2017), via distributor mirror,
+  current revision unread" or not used. **Do not put a GE 850 default number on screen as fact.**
+- **Basler BE1-25 could not be reached at the publisher at all** (legacy URL redirects to a login
+  page, current product page carries no manual link). No Basler number is citation ready. Not used.
+
+**What the bench does with this:** model the 25 element as SEL's published AND of three independent
+windows (angle < setting, slip within band, each side's voltage within its window), verify the
+advance angle example above, name the relay whose ranges it shows, and refuse to run without one. It
+does NOT publish a single "in sync = X" verdict with defaults, because no such defaulted verdict was
+read at a current publisher copy. That refusal is the honest position and it is stronger than a made
+up default.
+
+⚠ **A SEL VOLTAGE DIFFERENCE PERCENTAGE IN THE ASCO SHAPE DOES NOT EXIST.** The task went looking for
+SEL's version of ASCO's "voltage difference < 5%". SEL does not publish one: its criterion is an
+ABSOLUTE voltage pickup window per side (0 to 300 V secondary) plus independent 27S/59S elements, not
+a cross-side percentage. The Thompson paper says microprocessor relays "measure the voltage magnitude
+difference directly" but publishes no tolerance for it. **Report the window SEL actually publishes; do
+not manufacture a percentage to match ASCO.** (Beckwith DOES publish a delta voltage limit, 1 to 50%
+of nominal, on the M-3410A spec sheet, so if a percentage is wanted, it is Beckwith's, cited to
+Beckwith, not SEL's.)
 
 ## Device 86: no published example exists, and that is the correct answer
 
@@ -175,5 +237,9 @@ domain knowledge, not a citation. It is low risk and it is still not evidence, s
 - **The GE "ANSI curves" equation form is unconfirmed.** The five constants were extracted from the
   text layer, but the equation image was not rendered and read the way the IEEE family's was. Do not
   build the ANSI family on this file.
-- **Device 25 has no primary** and **device 86 has no source at all.** Repeated here so it survives a
-  skim of this section.
+- **Device 25 is now sourced** (2026-07-17, SEL + Beckwith at the publisher, GE 850 defaults on a
+  stale mirror and labelled as such). **Device 86 is still not sourced from a document.** It is a
+  latch, so there is no number to publish, and the honest options are two: cite its latching logic
+  from a manual already in hand (the GE 850's own lockout description), or model it as a pure latch
+  and cite C37.2 by number for the device meaning only. Until one is chosen, the split that keeps
+  the source phase `wip` is 86 alone, not 25.

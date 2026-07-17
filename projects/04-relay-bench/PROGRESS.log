@@ -95,3 +95,39 @@ contains finished, verified work.
             NEXT: 25 (workers running), then a decision on 86. Do not build until 25 is sourced or
             cut: the split (50/51/87 sourced, 25/86 not) is the whole reason this phase is still wip.
 
+2026-07-17  source: device 25 SOURCED. Phase stays wip: 86 is now the ONLY unsourced device, and the
+            two-standards-of-evidence rule still holds until it is sourced or cut.
+            Two workers, opposite vendors on purpose (#12): one GE/Basler/Beckwith and told NOT to
+            start at SEL, one SEL only. Disjoint manufacturers, so no single number to compare, but
+            THEY CONVERGED ON THE SAME LAW INDEPENDENTLY and both recommended the same refusal.
+            🔴 THE LAW, REACHED FROM A THIRD DIRECTION: there is no "the" sync check, exactly as 03
+            proved there is no "the" ATS and 02 no "the" IEEE curve. Two SEL product lines disagree
+            with EACH OTHER by 10x on slip range (751A: 0.05-0.50 Hz; 451-6: 0.005-0.500 Hz), both
+            current, both at the publisher. So the 25 element names its relay, quotes that relay's
+            own ranges, and REFUSES without one. Not a gap; the domain fact the bench teaches.
+            ✅ A REPRODUCIBLE VERIFY FIXTURE EXISTS AND WAS CHECKED. SEL's Thompson paper (publisher
+            CDN, p.5, rendered as image) publishes advance angle = slip x 360 x CBCT and the worked
+            value: 0.05 Hz slip, 5-cycle breaker close -> 1.5 deg. Recomputed: 0.05 x 360 x (5/60) =
+            1.5 exactly, and 0.05 x 360 = 18 deg/s, which the page also states. 02's shape.
+            🔴 PROVENANCE, TWO KINDS OF NUMBER, DO NOT COLLAPSE THEM:
+            - SEL-751A, SEL-451-6, Beckwith M-3410A: PUBLISHER, CURRENT, but RANGES ONLY. No default
+              is published (defaults live in the gated full manuals). Quote the range, not a default.
+            - GE 850: the ONLY source with full defaults + hysteresis + dead-source Boolean logic,
+              but read at a DISTRIBUTOR mirror at v2.0x (2017) while GE ships v4.3x (2026), login
+              walled. #18 exactly. The dead-source LOGIC STRUCTURE is safe (a pattern, not a number);
+              the GE default NUMBERS (0.20 Hz / 20 deg / 2000 V) are stale-revision risk and must be
+              labelled or dropped. Do not put a GE 850 default on screen as fact.
+            - Basler BE1-25: not reachable at the publisher at all. Not used.
+            ⚠ The old "10-20 deg / 0.1-0.2 Hz / 2-5%" ranges were not just unsourced, they were WRONG:
+            no publisher document matches them. Struck.
+            ⚠ NO SEL VOLTAGE-DIFFERENCE PERCENTAGE in ASCO's "5%" shape exists. SEL publishes an
+            absolute per-side voltage window, not a cross-side percentage. Beckwith publishes a delta
+            voltage 1-50% of nominal, so if a percentage is wanted it is Beckwith's, cited to Beckwith.
+            Full quotes, page numbers and audit rows in sources/SOURCES.md.
+
+            THE 86 DECISION, stated so the next session does not re-spend it: 86 is a latch, there is
+            no number to publish. Two honest options, pick one before source flips to done:
+            (a) cite the GE 850's own lockout/latching description (a manual already in hand) for the
+                behaviour, or (b) model it as a pure latch and cite C37.2 by number for the device
+                meaning only. Either is fine; leaving it undocumented is not.
+
