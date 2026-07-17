@@ -1,0 +1,155 @@
+# Mutants for 07. Run: ./tools/mutate.sh projects/07-switching-order
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one MUST make the suite go red. A
+# survivor is a finding and it is one of three things: dead code, a coverage hole, or an EQUIVALENT
+# mutant that no input can distinguish (pattern 14). Prove equivalence before claiming it.
+#
+# ⚠ RUNNER CONSTRAINT: mutants.txt is parsed with `IFS='|' read`, so A SED EXPRESSION MAY NOT CONTAIN
+# A PIPE. It truncates silently at the first one, the fragment is invalid sed, and the runner used to
+# score a kill it never earned. Express "any one of these suffices" by dropping each term in turn.
+#
+# 07'S MUTANTS COME IN FOUR FLAVOURS.
+#
+#   1. BREAK THE TOPOLOGY. The model is traced from two figures and the whole project rests on it
+#      being right. These move a blade or delete an edge, and BPA's published answers stop
+#      reproducing. Flavour 1 is the answer to "how do you know you read the drawing correctly" --
+#      not fully, but a wrong blade cannot satisfy two examples that share one figure.
+#   2. BREAK THE ALGORITHM. Zone growth, boundary detection, source reachability, the verbs.
+#   3. BREAK THE RULE CHECKER. IV.4.C is the gate; a gate that cannot fail is decoration.
+#   4. 🔴 BREAK NOTHING, AND ONLY MAKE THE TOOL CLAIM MORE THAN ITS SOURCE. Section F's mutants
+#      compute nothing wrong. They let the tool call a generated sequence BPA's, or assume a breaker
+#      can interrupt what flows through it. This repo's failure mode is not a broken feature, it is
+#      an honest overclaim, and flavour 4 is the only one that looks for it.
+
+# ---------------------------------------------------------------------------------------------
+# 1. THE TOPOLOGY. Traced from the figures at 14x. If these do not go red, the tracing is untested.
+# ---------------------------------------------------------------------------------------------
+
+# 🔴 THE ONE THAT MATTERS MOST. The repo's own SOURCES.md described the Example 1 figure as "PCB A-10
+# with a disconnect either side", which is a disconnect short, and it hung the Auxiliary Bus
+# Disconnect off the BREAKER instead of off the LINE NODE. This mutant re-creates that exact error.
+# A model built this way calls the line isolated while it sits fed from the auxiliary bus. The device
+# COUNT stays right, which is precisely why the wrong description survived a whole phase.
+build/topology.js | s/between: \['central_aux_bus', 'central_line_node'\]/between: ['central_aux_bus', 'central_a10_line_terminal']/ | Aux Bus Disconnect hung off the breaker terminal instead of the line node (the source phase's real error)
+
+# The third blade itself. Delete the Main Bus Disconnect and Example 2's published answer cannot exist.
+build/topology.js | s/id: 'a10_main_bus_disc', label: 'A-10 Main Bus Disconnect', kind: 'isolating'/id: 'a10_main_bus_disc', label: 'A-10 Main Bus Disconnect', kind: 'fixed'/ | Main Bus Disconnect demoted to a fixed connection (Example 2 loses half its answer)
+
+# 🔴 THE BYPASS. BPA draws it on purpose in X.3, and it is 01's one way bus tie bug published as a
+# figure. Delete the edge and the feeder side of the breaker reaches no source, so BPA's published
+# Feeder Disconnect stops being a limit.
+build/topology.js | s/id: 'bypass_disc', label: 'Bypass Disconnect', kind: 'isolating'/id: 'bypass_disc', label: 'Bypass Disconnect', kind: 'ground'/ | the Bypass Disconnect made untraversable (BPA's X.3 answer collapses to one device)
+
+# The auxiliary bus is a source. The evidence is X.5 Example 1, a different example, which is what
+# keeps the reasoning non circular. Take the source flag away and Example 1's answer loses a device.
+build/topology.js | /central_aux_bus: {/,/},/ s/source: true/source: false/ | Central auxiliary bus is no longer a source
+
+# The line joins the two terminals. Cut it and East Columbia's devices stop being limits for a
+# clearance requested at Central, which is not what BPA publishes.
+build/topology.js | s/id: 'the_line', label: 'Central-East Columbia No. 3 230 kV line', kind: 'fixed'/id: 'the_line', label: 'Central-East Columbia No. 3 230 kV line', kind: 'isolating'/ | the line conductor turned into an isolating device (East Columbia drops out of the answer)
+
+# BPA's verbs are transcribed from the state. Flip the one the whole Example 1 / Example 2 carryover
+# rests on and the prediction in C3 stops predicting.
+build/topology.js | /id: 'a10_line_side_disc'/,/},/ s/state: 'closed'/state: 'open'/ | A-10 Line Side Disconnect starts open (BPA says "open and tag" it, so it was closed)
+
+# ---------------------------------------------------------------------------------------------
+# 2. THE ALGORITHM.
+# ---------------------------------------------------------------------------------------------
+
+# A BREAKER IS NOT AN ISOLATING DEVICE. That single line is most of the domain: BPA opens PCBs to
+# de-energize and STILL requires disconnects opened and tagged as the limits. Stop the zone crossing
+# the breaker and Example 2's answer (which spans it) falls apart.
+build/engine.js | s/const ZONE_TRAVERSABLE = \['pcb', 'fixed'\];/const ZONE_TRAVERSABLE = ['fixed'];/ | zone no longer grows across a breaker
+
+# The inverse: let the zone grow through disconnects too and every boundary dissolves.
+build/engine.js | s/const ZONE_TRAVERSABLE = \['pcb', 'fixed'\];/const ZONE_TRAVERSABLE = ['pcb', 'fixed', 'isolating'];/ | zone grows through isolating devices (there are no limits left)
+
+# 🔴 LIMITS ARE TOPOLOGICAL, NOT STATEFUL, AND BPA PROVES IT TWICE (Example 2's already-open Line
+# Side Disconnect; Example 5's "open low voltage isolating device ACB-1"). Make the source search
+# respect the live state and Example 2's answer collapses to a single device.
+build/engine.js | s/if (d.kind !== 'isolating') continue;/if (d.kind !== 'isolating') continue; if (d.state === 'open') continue;/ | limits made state dependent (an already-open device stops counting as a limit)
+
+# Ground is not a source, so a ground switch is never a limit. Let the search walk through one and
+# the ground switches start showing up as clearance limits, which BPA never does.
+build/engine.js | /function reachesSourceAvoidingZone/,/^}/ s/if (d.kind === 'ground') continue;/if (d.kind === 'nonexistent') continue;/ | ground switches traversed as if ground were a source
+
+# The boundary test. Both endpoints in, or both out, means not a boundary.
+build/engine.js | s/if (aIn === bIn) continue;/if (aIn \&\& bIn) continue;/ | boundary test accepts devices wholly outside the zone
+
+# Re-entering the zone is not an energization path TO the zone.
+build/engine.js | s/zone\.has(far) .. seen\.has(far)/seen.has(far)/ | source search allowed to path back through the zone
+
+# The verbs. BPA says "check open" for an open device and "open" for a closed one.
+build/engine.js | s/return device.state === 'open' ? 'check open and tag' : 'open and tag';/return device.state === 'open' ? 'open and tag' : 'check open and tag';/ | tag verbs inverted
+
+# energized() is the stateful half and is what shows the feeder live through the bypass.
+build/engine.js | s/if (d.state !== 'closed') continue;   \/\/ an open device conducts nothing/if (d.state === 'nonexistent') continue;/ | open devices conduct (nothing is ever dead)
+
+# ---------------------------------------------------------------------------------------------
+# 3. THE RULE. BPA S-6 IV.4.C: "PCB(s) shall be checked open before operating isolating devices."
+# ---------------------------------------------------------------------------------------------
+
+# The gate itself. If reversing the sequence does not fail, the gate is decoration.
+build/engine.js | s/return { ok: violations.length === 0, violations, rule: RULE_IV_4_C };/return { ok: true, violations: [], rule: RULE_IV_4_C };/ | IV.4.C checker always passes
+
+# A disconnect that is only CHECKED open is not OPERATED, so it does not engage the rule. Treat it as
+# operated and the rule fires on sequences BPA's own example would fail.
+build/engine.js | s/const firstIsolatingOp = steps.findIndex((s) => s.kind === 'isolating' \&\& s.op !== 'check open and tag');/const firstIsolatingOp = steps.findIndex((s) => s.kind === 'isolating');/ | checking a disconnect open counted as operating it
+
+# The breakers must be emitted before the disconnects, which is the rule expressed as an order.
+build/engine.js | s/for (const pcbId of pcbsToCheckOpen(topo, workItem)) {/for (const pcbId of []) {/ | no breaker steps emitted at all
+
+# A disconnect already open is checked open, not operated, so it does not drag a breaker in with it.
+build/engine.js | s/if (limit.state === 'open') continue;   \/\/ checked open, not operated: the rule is not engaged/if (false) continue;/ | already-open limits treated as operations (pulls in breakers BPA does not open)
+
+# ---------------------------------------------------------------------------------------------
+# 4. 🔴 THESE BREAK NO CALCULATION. THEY ONLY LET THE TOOL CLAIM MORE THAN ITS SOURCES DO.
+#    Every limit still computes correctly under each one. Every number is still right. That is the
+#    point: this repo's failure mode is an honest overclaim, and nothing else in the suite is
+#    looking for it.
+# ---------------------------------------------------------------------------------------------
+
+# BPA publishes NO filled in switching order in 86 pages. Let the emitted sequence stop saying so.
+build/engine.js | s/publishedStepList: false,/publishedStepList: true,/ | the generated sequence claims a published step list exists
+
+build/engine.js | s/generated: true,/generated: false,/ | the generated sequence stops declaring itself generated
+
+# The disclaimer carries the specific negative finding. Soften it to a vague hedge and the finding is
+# gone while every computed answer stays identical.
+build/engine.js | s/'This sequence was generated by this tool. BPA S-6 does not publish a filled in Switching '/'This sequence is for reference only. '/ | disclaimer softened from a stated finding to a hedge
+
+# 🔴 THE ATTRIBUTION. Nothing computed changes; the tool simply starts calling its own output BPA's.
+build/engine.js | s/disclaimer:/disclaimer2: 'This is BPA\\'s own switching order as published by BPA.', disclaimer:/ | a shipped string attributes the generated sequence to BPA
+
+# 🔴 THE RATIONALE. BPA states IV.4.C bare and never explains it. Publishing the physics in BPA's
+# voice changes no answer and is exactly the sentence #26 caught one line before it shipped.
+build/engine.js | s/text: 'PCB(s) shall be checked open before operating isolating devices.',/text: 'PCB(s) shall be checked open before operating isolating devices.', why: 'BPA states this because a disconnect has no interrupting rating.',/ | the rule's rationale published in BPA's voice
+
+# 🔴 THE ASSUMPTION BPA CONTRADICTS IN A NAMED BAY (X.5 Ex 2, P-54: a PCB "inadequate for
+# line-dropping"). Let the engine assume any breaker can interrupt. Every published answer in this
+# project still reproduces, because both of BPA's Example 1 breakers really can drop the line. The
+# tool is simply wrong about a bay BPA documents.
+build/engine.js | s/if (d.lineDropCapable !== true) {/if (false) {/ | engine assumes every breaker can interrupt what flows through it
+
+# The refusals must each name the source line that makes them a refusal rather than a missing feature.
+build/engine.js | s/because: 'A clearance is a human procedure with a Dispatcher on the other end of it. This is a ' +/because: 'x' +/ | a refusal loses the source that justifies it
+
+# ---------------------------------------------------------------------------------------------
+# DELIBERATELY NOT WRITTEN, AND THE REASONING IS THE PATTERN (#20: only mutate a boundary the source
+# actually publishes).
+#
+# There is no mutant for "what happens when a clearance is requested on a node inside another
+# clearance's limits", because BPA X.2 Examples 3 and 4 (P-48, P-49) describe multiple and adjacent
+# clearances and this project has not encoded them. Writing that mutant would require asserting
+# behaviour no source read here publishes, which is how a suite starts inventing facts to stay green.
+#
+# There is no mutant for the A-3 Main Bus Disconnect, because BPA never names that device: the figure
+# shows the blade, the prose never asks a question about it, and its name here is inferred by symmetry
+# and flagged as such. A mutant there would be testing this repo's own guess.
+#
+# There is no mutant for Example 5's ACB-1, because Example 5 is not encoded. Its answer is published
+# and its mechanism is not: as traced, an open transition transfer switch gives the alternate source
+# no path to ACB-1, so any model that reproduces BPA's published answer would have been chosen to
+# reproduce it. See the note at the foot of topology.js.

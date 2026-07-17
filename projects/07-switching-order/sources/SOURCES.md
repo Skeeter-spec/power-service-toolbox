@@ -208,6 +208,32 @@ survived that re read exactly.
   clearances carrying two Do Not Operate tags, and stated tag removal order.
   **X.2 Example 5 (P-51)** a transformer bank clearance whose limits include the **open low voltage
   device ACB-1**, because the alternate station service source can back feed into the clearance.
+  🔴 **RE READ AND TRACED 2026-07-17, AND IT IS NOT ENCODED. THE ANSWER IS PUBLISHED; THE MECHANISM
+  IS NOT, AND THE DIFFERENCE IS THE FINDING.** It is the largest published answer in the document
+  (five devices, the only limits crossing a voltage class) and it was the obvious next fixture.
+  Verbatim, P-51: *"A-9 Transformer Side and Auxiliary Bus and B-2 Transformer Side and Auxiliary
+  Bus Disconnect switches will be tagged as Clearance limits with Do Not Operate tags. For the
+  purposes of controlling energization of the equipment included within the Clearance from the
+  alternate station service source, a Do Not Operate tag shall also be placed on the open low
+  voltage isolating device ACB-1 as a Clearance limit."*
+  **What the figure gives, traced at 20x and solid:** A-9 and B-2 mirror the Example 1 arrangement
+  exactly (a main bus disconnect, the PCB, a transformer side disconnect, and an auxiliary bus
+  disconnect hanging off the transformer node). The trunk from the bank **CROSSES the B main bus
+  with no junction dot**, a crossover rather than a connection. Assume otherwise and the model shorts the
+  transformer to the bus.
+  **What it does not give:** BPA's purpose clause names the alternate station service source as the
+  hazard. Tracing the ATS at 22x, the pivot is the common and it feeds the Station Service Loads,
+  selecting between a normal contact (fed through ACB-1 from the station service transformer) and an
+  alternate contact (fed from the alternate source). **An open transition transfer switch never
+  joins those two contacts, so on the drawing as traced the alternate source has NO PATH to ACB-1**,
+  and BPA's stated rationale cannot be reproduced without assuming a transfer mechanism the document
+  never states. Whether that ATS parallels its sources on transfer is a VENDOR fact, and BPA does not
+  name the vendor. See 03, which proved there is no "the" ATS.
+  ⇒ Encoding it means picking whichever transfer model makes the published answer come out. That is
+  an answer key grading itself (#21), on a five device answer where the model would be chosen to fit.
+  **It stays out, stated, until the mechanism is found in S-6 or put to someone who runs one.** Same
+  shape as the rule's missing rationale below: assert what is published, decline to publish the
+  physics in the source's voice.
   **X.3 Example 1 (P-52)** a second topology: a **Bypass Disconnect in parallel** with a PCB and both
   its disconnects. Open the PCB and the feeder is still energized. This is 01's one way bus tie bug in
   a published figure, and it is the fixture that forces the reachability search to be undirected.

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clearance limits, on BPA's published figures</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  07 Switching order and LOTO planner. Zero dependencies, no CDN, no build step, hand rolled SVG.
+
+  ⚠ EVERY STRING IN THIS FILE SHIPS, and verify.js section F greps this directory for two sentences
+  that must never appear: any attribution of a generated sequence to BPA, and any statement of rule
+  IV.4.C's rationale in BPA's voice. Both are mutation tested in both directions. Read section F
+  before adding copy here.
+-->
+<style>
+  :root {
+    --bg: #12141a; --panel: #191c24; --line: #2b3040; --ink: #e6e9f0; --dim: #97a0b5;
+    --live: #e0533f; --dead: #4a5468; --limit: #f5b53d; --ok: #52b788; --acc: #7aa2f7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1 { font-size: 25px; margin: 0 0 6px; letter-spacing: -0.2px; }
+  .sub { color: var(--dim); margin: 0 0 22px; max-width: 76ch; }
+  .banner { background: #3a2418; border: 1px solid #7a4a2a; color: #f3c8a8;
+            padding: 11px 14px; border-radius: 8px; margin-bottom: 22px; font-size: 14px; }
+  .banner b { color: #ffd9b8; }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,420px); gap: 20px; }
+  @media (max-width: 980px) { .cols { grid-template-columns: minmax(0,1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.9px;
+              color: var(--dim); margin: 0 0 12px; font-weight: 600; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  button { font: inherit; cursor: pointer; background: #222736; color: var(--ink);
+           border: 1px solid var(--line); border-radius: 7px; padding: 8px 13px; text-align: left; }
+  button:hover { border-color: var(--acc); }
+  button[aria-pressed="true"] { background: #26365c; border-color: var(--acc); color: #fff; }
+  .q { display: block; width: 100%; margin-bottom: 8px; }
+  .q .qt { font-weight: 600; }
+  .q .qc { color: var(--dim); font-size: 12.5px; }
+  svg { width: 100%; height: auto; display: block; background: #0e1015;
+        border: 1px solid var(--line); border-radius: 8px; }
+  .lgd { display: flex; gap: 16px; flex-wrap: wrap; color: var(--dim); font-size: 12.5px; margin-top: 10px; }
+  .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--dim); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .match { color: var(--ok); font-weight: 600; }
+  .quote { border-left: 3px solid var(--acc); padding: 8px 0 8px 12px; margin: 12px 0;
+           color: #cdd6f4; font-size: 13.5px; background: #1c2130; border-radius: 0 6px 6px 0; }
+  .quote cite { display: block; margin-top: 6px; color: var(--dim); font-style: normal; font-size: 12px; }
+  ol.seq { margin: 0; padding-left: 22px; font-size: 14px; }
+  ol.seq li { margin-bottom: 5px; }
+  ol.seq .dev { font-weight: 600; }
+  ol.seq .op { color: var(--acc); }
+  .note { font-size: 12.5px; color: var(--dim); margin-top: 12px; }
+  .refuse { border: 1px dashed #4a3a5a; border-radius: 8px; padding: 12px 14px; margin-top: 18px; background: #1a1622; }
+  .refuse h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.9px; color: #c9a7e8; margin: 0 0 9px; }
+  .refuse li { font-size: 13px; margin-bottom: 8px; color: #ded3ea; }
+  .refuse b { color: #fff; }
+  footer { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line);
+           color: var(--dim); font-size: 12.5px; }
+  a { color: var(--acc); }
+</style>
+
+<div class="wrap">
+  <h1>Clearance limits, computed on BPA's published figures</h1>
+  <p class="sub">
+    Given a circuit and a job, which devices are the boundary? That is the clearance limit, and it is
+    the thing you get wrong and die. This reproduces the answers the Bonneville Power Administration
+    publishes for its own worked examples, out of one model, from the drawings they came with.
+  </p>
+
+  <div class="banner">
+    <b>Not a field tool.</b> A clearance is a human procedure with a Dispatcher on the other end of
+    it. This is a study model of two published figures, built to reproduce what a public document
+    already prints. It is not a substitute for a Switching Order, a Dispatcher, or your own eyes on
+    the gear.
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="cols">
+    <div>
+      <div class="panel">
+        <h2 id="figTitle">The circuit</h2>
+        <svg id="svg" viewBox="0 0 900 560" role="img" aria-labelledby="figDesc"></svg>
+        <p id="figDesc" class="note"></p>
+        <!-- The dashed circle had no legend entry until the visual pass. An unexplained mark on a
+             drawing is the same failure as a wrong label: the reader cannot tell what it claims. -->
+        <div class="lgd">
+          <span><i class="sw" style="background:var(--live)"></i>energized</span>
+          <span><i class="sw" style="background:var(--dead)"></i>de-energized</span>
+          <span><i class="sw" style="background:var(--limit)"></i>a limit of this clearance</span>
+          <span><i class="sw" style="border:1.5px dashed var(--acc);background:none;border-radius:50%"></i>inside the clearance</span>
+          <span>square = power circuit breaker &nbsp; blade = isolating device</span>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:20px">
+        <h2>What this tool computed, against what BPA published</h2>
+        <table id="cmp"></table>
+        <div id="notLimits"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>The clearance</h2>
+        <div id="queries"></div>
+        <div id="quote"></div>
+      </div>
+
+      <div class="panel" style="margin-top:20px">
+        <h2>A sequence, generated here</h2>
+        <ol class="seq" id="seq"></ol>
+        <p class="note" id="seqNote"></p>
+      </div>
+
+      <div class="refuse">
+        <h3>What this tool will not tell you</h3>
+        <ul id="refusals" style="margin:0;padding-left:18px"></ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Source: Bonneville Power Administration, Operating Bulletin No. 2 / Accident Prevention Rule S-6,
+    <a href="https://www.bpa.gov/-/media/Aep/customers-and-contractors/safety/switching-and-clearance-procedure.pdf">Switching
+    and Clearance Procedure</a>, October 1 2025, 86 pp. Read at the publisher. Public domain, 17 USC
+    105, and the licence was checked per paragraph rather than per cover. Grounding order:
+    29 CFR 1910.269(n)(6), read at govinfo.gov.
+    Part of the <a href="https://github.com/Skeeter-spec/power-service-toolbox">Power Service Toolbox</a>.
+  </footer>
+</div>
+
+<script src="topology.js"></script>
+<script src="engine.js"></script>
+<script>
+'use strict';
+
+// Layout is presentation, not data. The connectivity lives in topology.js and is the fact; where a
+// node is drawn is a choice this file makes. The arrangement follows BPA's own drawings so the two
+// can be read side by side, but nothing computed depends on a coordinate.
+const LAYOUT = {
+  'bpa-x2-ex1': {
+    nodes: {
+      central_aux_bus: [120, 170], central_line_node: [400, 170],
+      central_a10_line_terminal: [545, 170], central_a10_bus_terminal: [700, 170],
+      central_main_bus: [830, 170],
+      east_aux_bus: [120, 430], east_line_node: [400, 430],
+      east_a3_line_terminal: [545, 430], east_a3_bus_terminal: [700, 430],
+      east_main_bus: [830, 430],
+    },
+    groundAt: { gs_7233: [400, 70], gs_7243: [400, 530] },
+    // The standalone "Central" and "East Columbia" station labels BPA's figure carries are not
+    // repeated here: every bus already names its own station, so they were pure duplication, and
+    // the structural overlap check caught them colliding with the A-3 and GS 7243 labels. That
+    // check exists because 01 shipped two node boxes silently overlapping.
+    labels: [
+      { at: [300, 300], text: 'Central-East Columbia', anchor: 'middle', dim: true },
+      { at: [300, 318], text: 'No. 3 230 kV Line', anchor: 'middle', dim: true },
+    ],
+  },
+  'bpa-x3-ex1': {
+    nodes: {
+      feeder_node: [300, 110], pcb_feeder_terminal: [300, 230],
+      pcb_bus_terminal: [300, 370], bus_node: [300, 470], bus: [300, 520],
+    },
+    via: { bypass_disc: [[560, 110], [560, 470]] },
+    groundAt: {},
+    // No 'Bus' label here: the bus is a SOURCE, so the renderer already draws its name beside the
+    // stub, and a second one printed the word twice. The overlap check is blind to that, because
+    // the two copies sat far enough apart not to collide. Only an eye sees a duplicate.
+    labels: [
+      { at: [300, 72], text: 'Feeder', anchor: 'middle' },
+    ],
+  },
+};
+
+let topoId = 'bpa-x2-ex1';
+let queryId = 'x2-ex1-line-work-clearance';
+
+// Fresh state each render: the published queries are sequential in BPA's own text (Example 2 is
+// written for the time the line is out of service on Example 1's clearance), so a query that names
+// a predecessor is asked against the state that predecessor leaves behind.
+function buildTopo() {
+  const t = JSON.parse(JSON.stringify(TOPOLOGIES[topoId]));
+  const ans = PUBLISHED_ANSWERS[queryId];
+  if (ans && ans.precededBy) {
+    const prev = PUBLISHED_ANSWERS[ans.precededBy];
+    prev.pcbsCheckedOpen.forEach(function (id) { t.devices.find(function (d) { return d.id === id; }).state = 'open'; });
+    prev.limits.forEach(function (id) { t.devices.find(function (d) { return d.id === id; }).state = 'open'; });
+  }
+  return t;
+}
+
+function el(tag, attrs, text) {
+  const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function render() {
+  const topo = buildTopo();
+  const ans = PUBLISHED_ANSWERS[queryId];
+  const lay = LAYOUT[topoId];
+  const res = clearanceLimits(topo, ans.workItem);
+  const limitSet = new Set(res.limits);
+  const zoneSet = new Set(res.zone);
+
+  // ---- tabs ----
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  Object.keys(TOPOLOGIES).forEach(function (id) {
+    const b = document.createElement('button');
+    b.textContent = TOPOLOGIES[id].title;
+    b.setAttribute('aria-pressed', id === topoId);
+    b.onclick = function () { topoId = id; queryId = TOPOLOGIES[id].publishedQueries[0]; render(); };
+    tabs.appendChild(b);
+  });
+
+  document.getElementById('figTitle').textContent = topo.title;
+  document.getElementById('figDesc').textContent = topo.blurb + ' ' + topo.citation +
+    '. Traced from the drawing, rendered at high magnification and read as an image.';
+
+  // ---- queries ----
+  const qs = document.getElementById('queries');
+  qs.innerHTML = '';
+  topo.publishedQueries.forEach(function (qid) {
+    const a = PUBLISHED_ANSWERS[qid];
+    const b = document.createElement('button');
+    b.className = 'q';
+    b.setAttribute('aria-pressed', qid === queryId);
+    b.innerHTML = '<span class="qt"></span><span class="qc"></span>';
+    b.querySelector('.qt').textContent = a.question;
+    b.querySelector('.qc').textContent = a.citation;
+    b.onclick = function () { queryId = qid; render(); };
+    qs.appendChild(b);
+  });
+
+  const q = document.getElementById('quote');
+  q.innerHTML = '';
+  const bq = document.createElement('div');
+  bq.className = 'quote';
+  bq.textContent = '"' + ans.tagQuote + '"';
+  const c = document.createElement('cite');
+  c.textContent = ans.citation + '. Verbatim.';
+  bq.appendChild(c);
+  q.appendChild(bq);
+
+  // ---- svg ----
+  const svg = document.getElementById('svg');
+  svg.innerHTML = '';
+  const P = lay.nodes;
+
+  function drawGround(x, y, dir) {
+    const g = el('g', {});
+    for (let i = 0; i < 3; i++) {
+      const w = 22 - i * 7;
+      g.appendChild(el('line', { x1: x - w, y1: y + dir * i * 6, x2: x + w, y2: y + dir * i * 6,
+        stroke: '#5a6478', 'stroke-width': 3 }));
+    }
+    return g;
+  }
+
+  // Buses and sources first, so devices draw over them.
+  for (const nid in P) {
+    const n = topo.nodes[nid];
+    if (!n) continue;
+    const [x, y] = P[nid];
+    const live = energized(topo, nid);
+    if (n.source) {
+      svg.appendChild(el('line', { x1: x - 30, y1: y - 26, x2: x - 30, y2: y + 26,
+        stroke: live ? 'var(--live)' : 'var(--dead)', 'stroke-width': 6, 'stroke-linecap': 'round' }));
+      // ⚠ ANCHORED MIDDLE, ABOVE THE STUB, AND NOT `end` BESIDE IT. The first version put these at
+      // x - 38 with text-anchor:end, which threw "Central auxiliary bus" out to x = -73: OUTSIDE THE
+      // viewBox AND SILENTLY CLIPPED. A clipped label still looks like a label, so a screenshot is
+      // blind to it. The browser structural check caught it, which is the second time this exact
+      // failure has happened in this repo (01's overlapping node boxes, 03's lane label at x = -13).
+      // The node suite cannot see it: it has no geometry. Run the structural pass before shipping.
+      svg.appendChild(el('text', { x: x - 30, y: y - 34, fill: 'var(--dim)', 'font-size': 12,
+        'text-anchor': 'middle' }, n.label));
+    }
+    if (zoneSet.has(nid)) {
+      svg.appendChild(el('circle', { cx: x, cy: y, r: 15, fill: 'none',
+        stroke: 'var(--acc)', 'stroke-width': 1.5, 'stroke-dasharray': '3 3', opacity: 0.75 }));
+    }
+  }
+
+  topo.devices.forEach(function (d) {
+    const isLimit = limitSet.has(d.id);
+    const open = d.state !== 'closed';
+    let a, b;
+
+    if (d.kind === 'ground') {
+      a = P[d.between[0]] || P[d.between[1]];
+      b = lay.groundAt[d.id];
+      if (!a || !b) return;
+      svg.appendChild(drawGround(b[0], b[1] < a[1] ? b[1] - 6 : b[1] + 6, b[1] < a[1] ? -1 : 1));
+    } else {
+      a = P[d.between[0]]; b = P[d.between[1]];
+      if (!a || !b) return;
+    }
+
+    const pts = [a].concat((lay.via && lay.via[d.id]) || []).concat([b]);
+    const liveA = energized(topo, d.between[0]);
+    const liveB = energized(topo, d.between[1]);
+    const col = isLimit ? 'var(--limit)' : ((liveA && liveB) ? 'var(--live)' : 'var(--dead)');
+    const wire = (liveA || liveB) ? 'var(--live)' : 'var(--dead)';
+
+    // the run
+    let dstr = 'M' + pts[0][0] + ',' + pts[0][1];
+    for (let i = 1; i < pts.length; i++) dstr += ' L' + pts[i][0] + ',' + pts[i][1];
+    svg.appendChild(el('path', { d: dstr, fill: 'none', stroke: wire, 'stroke-width': 3, opacity: 0.5 }));
+
+    // the symbol, at the midpoint of the last leg
+    const p1 = pts[pts.length - 2], p2 = pts[pts.length - 1];
+    const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+    const horiz = Math.abs(p2[0] - p1[0]) > Math.abs(p2[1] - p1[1]);
+
+    if (d.kind === 'pcb') {
+      svg.appendChild(el('rect', { x: mx - 17, y: my - 17, width: 34, height: 34, rx: 2,
+        fill: '#0e1015', stroke: open ? 'var(--dead)' : 'var(--live)', 'stroke-width': 3 }));
+      svg.appendChild(el('text', { x: mx, y: my - 26, fill: 'var(--ink)', 'font-size': 12.5,
+        'text-anchor': 'middle', 'font-weight': 600 }, d.label.replace(' PCB', '')));
+    } else if (d.kind === 'isolating' || d.kind === 'ground') {
+      // A blade between two CONTACT TICKS: angled when open, in line when closed.
+      //
+      // THE TICKS ARE NOT DECORATION, AND THE VISUAL PASS IS WHY THEY EXIST. Without them a CLOSED
+      // disconnect drew as a plain straight line and read as WIRE, not as a device: the A-10 Main
+      // Bus Disconnect was invisible as a switch on a tool whose whole job is teaching which device
+      // is which. Nothing was structurally wrong, no label was clipped, every byte checked out, and
+      // both automated passes were green. Only an eye caught it. BPA's own figure draws the ticks.
+      const L = 17;
+      let x1, y1, x2, y2;
+      if (horiz) { x1 = mx - L; y1 = my; x2 = mx + L; y2 = open ? my - 15 : my; }
+      else { x1 = mx; y1 = my - L; x2 = open ? mx + 15 : mx; y2 = my + L; }
+      const T = 7;
+      if (horiz) {
+        svg.appendChild(el('line', { x1: mx - L, y1: my - T, x2: mx - L, y2: my + T, stroke: col, 'stroke-width': 2, opacity: 0.85 }));
+        svg.appendChild(el('line', { x1: mx + L, y1: my - T, x2: mx + L, y2: my + T, stroke: col, 'stroke-width': 2, opacity: 0.85 }));
+      } else {
+        svg.appendChild(el('line', { x1: mx - T, y1: my - L, x2: mx + T, y2: my - L, stroke: col, 'stroke-width': 2, opacity: 0.85 }));
+        svg.appendChild(el('line', { x1: mx - T, y1: my + L, x2: mx + T, y2: my + L, stroke: col, 'stroke-width': 2, opacity: 0.85 }));
+      }
+      svg.appendChild(el('circle', { cx: x1, cy: y1, r: 3.5, fill: col }));
+      svg.appendChild(el('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: col, 'stroke-width': 3.5,
+        'stroke-linecap': 'round' }));
+      if (isLimit) {
+        svg.appendChild(el('circle', { cx: mx, cy: my, r: 23, fill: 'none', stroke: 'var(--limit)',
+          'stroke-width': 2, opacity: 0.55 }));
+      }
+      if (d.kind !== 'ground') {
+        const tx = horiz ? mx : mx + 26, ty = horiz ? my + 30 : my + 4;
+        const t = el('text', { x: tx, y: ty, fill: isLimit ? 'var(--limit)' : 'var(--dim)',
+          'font-size': 11.5, 'text-anchor': horiz ? 'middle' : 'start' }, d.label);
+        svg.appendChild(t);
+      } else {
+        svg.appendChild(el('text', { x: mx + 26, y: my + 4, fill: 'var(--dim)', 'font-size': 11.5 },
+          d.label.replace('Ground switch ', 'GS ')));
+      }
+    }
+  });
+
+  (lay.labels || []).forEach(function (L) {
+    svg.appendChild(el('text', { x: L.at[0], y: L.at[1], fill: L.dim ? 'var(--dim)' : 'var(--ink)',
+      'font-size': 12.5, 'text-anchor': L.anchor || 'start' }, L.text));
+  });
+
+  // ---- the comparison. This is the whole point: computed against published, side by side. ----
+  const cmp = document.getElementById('cmp');
+  cmp.innerHTML = '<tr><th>Device</th><th>This tool</th><th>BPA publishes</th><th>Its verb</th></tr>';
+  const all = Array.from(new Set(res.limits.concat(ans.limits))).sort();
+  all.forEach(function (id) {
+    const dev = topo.devices.find(function (d) { return d.id === id; });
+    const mine = limitSet.has(id), theirs = ans.limits.indexOf(id) !== -1;
+    const tr = document.createElement('tr');
+    const verb = mine ? tagAction(dev) : '';
+    const verbOk = !ans.actions[id] || verb === ans.actions[id];
+    tr.innerHTML = '<td></td><td></td><td></td><td></td>';
+    tr.children[0].textContent = dev ? dev.label : id;
+    tr.children[1].textContent = mine ? 'a limit' : 'not a limit';
+    tr.children[2].textContent = theirs ? 'a limit' : 'not a limit';
+    if (mine === theirs) tr.children[2].className = 'match';
+    tr.children[3].textContent = verb + (verbOk ? '' : ' (does not match)');
+    if (verb && verbOk) tr.children[3].className = 'match';
+    cmp.appendChild(tr);
+  });
+
+  const nl = document.getElementById('notLimits');
+  nl.innerHTML = '';
+  const keys = Object.keys(ans.notLimits || {});
+  if (keys.length) {
+    const p = document.createElement('p');
+    p.className = 'note';
+    let s = 'And what is NOT a limit here, which is the half that makes the pair worth reading: ';
+    s += keys.map(function (k) {
+      const dev = topo.devices.find(function (d) { return d.id === k; });
+      return (dev ? dev.label : k) + '. ' + ans.notLimits[k];
+    }).join(' ');
+    p.textContent = s;
+    nl.appendChild(p);
+  }
+
+  // ---- the sequence ----
+  const seqEl = document.getElementById('seq');
+  const noteEl = document.getElementById('seqNote');
+  seqEl.innerHTML = '';
+  let seq;
+  try {
+    seq = emitSequence(topo, ans.workItem);
+  } catch (e) {
+    noteEl.textContent = e.message;
+    noteEl.style.color = 'var(--limit)';
+    return;
+  }
+  seq.steps.forEach(function (s) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="op"></span> <span class="dev"></span>';
+    li.querySelector('.op').textContent = s.op;
+    li.querySelector('.dev').textContent = s.device;
+    seqEl.appendChild(li);
+  });
+  const rule = checkRuleIV4C(seq);
+  noteEl.style.color = '';
+  noteEl.textContent = seq.disclaimer + ' Rule ' + RULE_IV_4_C.id + ' (' + RULE_IV_4_C.cite + ') says: "' +
+    RULE_IV_4_C.text + '" This sequence ' + (rule.ok ? 'honours it.' : 'VIOLATES it: ' + rule.violations.join('; '));
+
+  // ---- refusals ----
+  const rf = document.getElementById('refusals');
+  rf.innerHTML = '';
+  REFUSALS.forEach(function (r) {
+    const li = document.createElement('li');
+    li.innerHTML = '<b></b> <span></span>';
+    li.querySelector('b').textContent = 'It will not ' + r.refuses + '.';
+    li.querySelector('span').textContent = r.because;
+    rf.appendChild(li);
+  });
+}
+
+render();
+</script>

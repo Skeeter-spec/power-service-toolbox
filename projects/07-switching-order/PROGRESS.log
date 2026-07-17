@@ -7,8 +7,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
     source   done
     learn    done
-    build    todo
-    verify   todo
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -171,3 +171,144 @@ contains finished, verified work.
                 any emitted sequence. Section F refusals per pattern #19: no step list is published, so
                 the tool must NEVER present a generated sequence as BPA's; and it may not assume every
                 PCB can interrupt.
+
+2026-07-17  build + verify DONE. 40 checks, 0 failures. 25 mutants, 25 killed, 0 survived.
+            node verify/verify.js  ·  ./tools/mutate.sh projects/07-switching-order
+
+            WHAT IT REPRODUCES: three published answers, out of one engine, from two figures traced
+            at 14x and read as images rather than inferred from the text layer.
+              X.2 Ex 1 (P-45)  Work Clearance on the line  -> Aux Bus + Line Side, both terminals
+              X.2 Ex 2 (P-47)  Test Clearance on A-10 PCB   -> Line Side + MAIN BUS
+              X.3 Ex 1 (P-52)  Dispatcher tag on the feeder breaker -> Feeder Disc + Bus Disc
+            EVERYTHING LOAD BEARING WAS RE READ AT THE PUBLISHER BY THIS SESSION (curl 200, effective
+            URL == requested URL, BPA employee as author, Word as creator). The learn phase's quotes
+            all survived exactly. Both figures re rendered and re counted independently.
+
+            🔑 A FOURTH SHAPE OF VERIFY, AND THE PAIR IS WHAT MAKES IT STRONG. 01 checked a
+            structural claim against a prose verdict; 02 checked arithmetic against a 210 cell table;
+            03 had no published timeline at all; 05 had literal hex bytes. 07: THE SOURCE ASKS THE
+            SAME CIRCUIT TWO QUESTIONS AND PUBLISHES TWO DIFFERENT ANSWERS, AND EACH IS WRONG FOR THE
+            OTHER QUESTION. Any model can be bent to reproduce one answer. A model that has the
+            topology subtly wrong cannot satisfy both. Examples 1 and 2 share ONE figure.
+
+            🔑 THE CROSS EXAMPLE PREDICTION, which is the best check in the project and was NOT in
+            the plan. Example 2 is written for the time "the line is out of service on a Work
+            Clearance", i.e. DURING Example 1. Example 1 OPENS the Line Side Disconnect. So when
+            Example 2 names the same device its verb changes from "open and tag" to "CHECK open and
+            tag". Nothing was tuned to make that happen: run Example 1 against the initial state,
+            keep the state it leaves behind, ask Example 2, and BPA's second verb falls out. The
+            document agrees with itself across two examples and the model reproduces the agreement.
+            That is 02's "the manual agrees with itself three ways" in a different shape. Check C4
+            exists to prove C3 is not vacuous: from the un-preceded state the verb really is
+            different.
+
+            🔴 THE MODEL FACT THAT MAKES IT WORK, AND BPA PROVES IT TWICE: LIMITS ARE TOPOLOGICAL,
+            NOT STATEFUL. It is natural to compute limits against the live state (only count a device
+            if something is live through it now). That is wrong. Ex 2's Line Side Disconnect is
+            ALREADY OPEN and is still a published limit. Ex 5's ACB-1 is described in BPA's own words
+            as "the open low voltage isolating device" and is still a published limit. A limit is not
+            about what IS energizing the zone, it is about what COULD. The tag is the point, not the
+            opening. Compute it statefully and Example 2's answer collapses to one device; BPA says
+            two. Mutation tested.
+
+            MUTATION TESTING EARNED ITS KEEP FOUR TIMES, and none of the four was visible from a
+            green suite:
+            1. The runner caught a WIDE MUTANT: my ground switch sed matched 2 lines, corrupting the
+               claim and the check together. Not a kill and not a survival, "a measurement of
+               nothing". Narrowed with an address range.
+            2. `pcb` in ZONE_TRAVERSABLE was UNEXERCISED. Every published fixture asks about the
+               breaker as a DEVICE, which seeds both terminals directly, so the traversal never ran.
+               A coverage hole, not dead code: a clearance requested at a NODE beside a breaker needs
+               it, and the UI can ask for one. Killed by A7, whose justification is INFERRED from a
+               published answer and labelled as inference: Example 2 makes the disconnects on BOTH
+               sides of A-10 the limits of one clearance, which is only true if that clearance spans
+               the breaker.
+            3. "already-open limits treated as operations" survived because Example 1's already-open
+               limit sits on a LEAF node with nothing beyond it, so the extra walk found no breaker.
+               Example 2's already-open limit has the whole line and A-3 behind it. C6 is the fixture
+               that can see the difference, and BPA publishes the answer: no breaker is opened in
+               Example 2, because A-10 "is already open".
+            4. "checking a disconnect open counted as operating it" survived because emitSequence
+               always puts the breakers first, so no EMITTED sequence can tell the readings apart.
+               The distinction is BPA's own word ("before OPERATING isolating devices") and Example
+               1's own phrasing ("open OR CHECK OPEN and tag"), so E5's fixture is built by hand.
+
+            🔴 THE GROUND GRID GUARD IS KILLED BY A SYNTHETIC FIXTURE, LABELLED AS THIS TOOL'S OWN.
+            The guard executes but changes no published answer: in every BPA fixture a real source is
+            reachable without walking the ground grid. A survivor is a finding, and this one is a
+            coverage hole, because an input DOES distinguish the readings. No PUBLISHED input does.
+            Rule #20 says a mutant you cannot kill without asserting unsourced behaviour is out of
+            scope, and this is NOT that case: 03's unkillable mutant needed a FACT ABOUT A DEVICE
+            only the manufacturer could supply (what happens at exactly 1.000 s). "Is the ground grid
+            an energization path" is not a fact about BPA's equipment at all, it is this model's own
+            choice, so this model's own fixture may assert it. What would be dishonest is dressing it
+            up as BPA's. A8 says so in the check name.
+
+            SECTION F, per #19, and its mutants BREAK NO CALCULATION. Every limit still computes
+            correctly under each one; they only make the tool claim more than its sources do. The
+            emitted sequence carries generated:true and publishedStepList:false as FIELDS, not as a
+            comment, and verify greps every shipped string in build/ for two sentences: any
+            attribution of a sequence to BPA, and IV.4.C's rationale in BPA's voice. Both mutation
+            tested in both directions.
+            ⚠ F4 FIRST FIRED ON ENGINE.JS'S OWN COMMENT saying BPA does NOT publish the rationale. A
+            disavowal has to quote what it disavows. The tempting fix was to reword until the regex
+            went quiet, which is gaming your own checker: the sentence would have been just as
+            attributive and the check just as blind. The scoping is principled instead: these read
+            SHIPPED STRINGS, because a shipped string reaches a reader and a comment reaches the next
+            session with the paragraph beside it.
+            🔴 THE ENGINE THROWS on a PCB whose line-drop capability is not published, rather than
+            assuming it (X.5 Ex 2, P-54: a PCB "inadequate for line-dropping", relaying modified so
+            it is never the last to open). Same shape as 03's engine throwing without a named vendor
+            profile: the refusal as a type error, not a paragraph. F6 proves the refusal is not
+            blanket: A-10 and A-3 open on BPA's published say-so.
+
+            QA: BOTH PASSES RUN, AND THEY CAUGHT DISJOINT THINGS. This is the third project in a row
+            where that was true, so it is a law and not a habit.
+            STRUCTURAL (claude-in-chrome + python3 -m http.server; the Browser pane blocks localhost
+            and this repo is outside cwd): two source labels rendered at x = -33 and x = -73, OUTSIDE
+            the viewBox and SILENTLY CLIPPED. text-anchor:end on a long name. A clipped label still
+            looks like a label, so a screenshot is blind to it. Third time in this repo (01's
+            overlapping boxes, 03's lane label at x = -13). Then, after the fix, two label collisions
+            the first pass had not reached.
+            VISUAL, and ONLY AN EYE CATCHES THESE, both with every byte correct and both passes
+            green: (a) a CLOSED disconnect drew as a plain straight line and read as WIRE, not as a
+            device, so the A-10 Main Bus Disconnect was invisible as a switch on a tool whose whole
+            job is teaching which device is which. BPA's own figure draws contact ticks; now so does
+            this. (b) "Bus" was printed TWICE on the X.3 figure, the source auto label plus a
+            redundant layout label. The overlap checker could not see it because the two copies sat
+            far enough apart not to collide. (c) the dashed zone circle had NO legend entry: an
+            unexplained mark on a drawing is the same failure as a wrong one.
+
+            ⚠ THE NODE SUITE CANNOT SEE GEOMETRY, and this is stated rather than papered over. The
+            clipping and overlap checks live in the browser structural pass, not in verify.js, which
+            has no DOM and no getBBox. 01 and 03 promoted their layout bugs into permanent tests by
+            approximating them; the honest position here is that the structural pass is a REQUIRED
+            QA step before shipping this project, and no committed test enforces it.
+
+            NEXT: publish, then live. Do not start another project until this one is pushed.
+
+2026-07-17  ⚠ EXAMPLE 5 (P-51) DELIBERATELY NOT ENCODED, and the reason is the finding.
+            It is the largest published answer in the document: FIVE limit devices, the only ones
+            that cross a voltage class. "A-9 Transformer Side and Auxiliary Bus and B-2 Transformer
+            Side and Auxiliary Bus Disconnect switches will be tagged as Clearance limits ... a Do
+            Not Operate tag shall also be placed on the open low voltage isolating device ACB-1 as a
+            Clearance limit."
+            The figure was traced at 20x and most of it is solid: A-9 and B-2 mirror the Example 1
+            arrangement exactly, and the trunk from the bank CROSSES the B main bus WITHOUT a
+            junction dot, which is a crossover and not a connection (assume otherwise and the model
+            shorts the transformer to the bus).
+            WHAT IS NOT SOLID IS THE MECHANISM. BPA's purpose clause says ACB-1 is tagged to control
+            energization of the clearance "from the alternate station service source". Reading the
+            ATS at 22x: the pivot is the common, it feeds the Station Service Loads, and it selects
+            between a normal contact (fed through ACB-1) and an alternate contact (fed from the
+            alternate source). AN OPEN TRANSITION TRANSFER SWITCH NEVER JOINS THOSE TWO CONTACTS, so
+            on the drawing as traced THE ALTERNATE SOURCE HAS NO PATH TO ACB-1, and the published
+            rationale cannot be reproduced without assuming a transfer mechanism BPA never states.
+            THE ANSWER IS PUBLISHED. THE PATH IS NOT. Encoding it means picking whichever ATS model
+            makes BPA's published answer come out, which is an answer key grading itself (#21). So it
+            stays out, written down, until the mechanism is found in the document or put to someone
+            who runs one. Same shape as the rule's missing rationale (#26): assert what is published,
+            decline to publish the physics in the source's voice.
+            🔗 Worth noting for 03 and for IEM: this is an ATS question, and 03 already proved there
+            is no "the" ATS. Whether this one parallels its sources on transfer is a VENDOR fact, and
+            BPA does not name the vendor.
