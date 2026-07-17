@@ -32,10 +32,15 @@ Almost nobody in power service writes software, and almost nobody who writes sof
 breaker. This repo sits in that overlap: the tools a field tech actually wants, built by someone who
 has been on the floor, and checked against the published literature rather than against a good feeling.
 
-It is a toolbox, not a pile of demos. **The tools interlock on purpose:** the switching order planner
-plans against the one line explorer's diagram, the relay bench's curves plot in the coordination
-studio's engine, the meter bench feeds readings into the power chain. Each one is useful alone and
-they compound together.
+It is a toolbox, not a pile of demos. **The tools interlock on purpose, though not the way a demo pile
+would:** they reach the same finding from different directions, off different sources, and the finding
+is a refusal. The power chain explorer prints no tier, because Uptime's own pages never use the
+vocabulary that mapping needs. The coordination studio prints no coordination verdict, because the
+source for the customary interval says "usually". The ATS sequence simulator has no vendor neutral
+mode, because ASCO and Russelectric agree on the sequence completely and disagree on its numbers by
+6x. The frame codec refuses to decode a 32 bit float, because the specification defines byte order
+within a register and defines no type wider than one. Different gear, different publishers, one law:
+name whose document you read, or say nothing.
 
 ## Safety, stated plainly
 
