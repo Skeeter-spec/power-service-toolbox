@@ -59,6 +59,18 @@ echo ""
 echo "[4/4] README status block and tools table"
 python3 tools/build_readme.py --check || fail=1
 
+# The private tracker, if this working copy has one. mission-control/ is GITIGNORED, so a cloner
+# does not have it and must still pass the gate: absent is not a failure, it is normal.
+#
+# It is checked at all because dashboard.html is a BUILD ARTIFACT, and an artifact nobody rebuilds
+# is one more copy of the truth. MEASURED 2026-07-17: flipping a PROGRESS.log phase and not
+# rebuilding left the dashboard claiming the old tally, and this gate printed GATE PASSED without
+# mentioning it. That is the same silence that let the CSV's phase columns drift 8 cells and tell
+# Keaton "2 live" while four were live.
+if [ -f mission-control/build_dashboard.py ]; then
+  python3 mission-control/build_dashboard.py --check || fail=1
+fi
+
 echo ""
 if [ "$fail" -ne 0 ]; then
   echo "GATE FAILED. Do not ship."

@@ -132,8 +132,8 @@ A green test suite proves nothing until you have watched it go red.
 
     ./tools/gate.sh
 
-Five checks in four steps (the last step checks the README's two copies of the live set against the
-same source), and each one exists because it already failed once here:
+Each check below exists because it already failed once here. The last step is where the README's two
+copies of the live set get compared against the same source:
 
 | Check | Because |
 |---|---|
