@@ -77,6 +77,25 @@ LOAD_BEARING = {"TRACED", "READ IN FULL"}
 HEADING = "## Source audit"
 URL_RE = re.compile(r"https?://[^\s)>\]|,]+")
 
+# RULE 5, added 2026-07-17 after the failure it catches SHIPPED once. This file's own header (top of
+# `check_one`'s story) describes 02's SOURCES.md claiming its rows were "read at the publisher" two
+# lines above a distributor URL. The fix was the `Read at` COLUMN. But a COLLECTIVE PROSE SENTENCE
+# ("the top three rows were read directly at the publisher's own PDF") was never checked, and on
+# 2026-07-17 exactly that shipped in 04's SOURCES.md three lines above its own table showing two of
+# those rows were MIRRORs. The gate was green; a human eye caught it. That is the #29 lesson (when
+# you replace a prose claim with a checked field, DELETE the prose) as a gate rule.
+#
+# ⚠ SCOPED, NOT REWORDED (per the "re-scope, don't silence" rule). It fires only on a COLLECTIVE
+# claim (the top N rows / all rows / both) that the rows were read at the publisher, AND only when a
+# load-bearing row actually says MIRROR/NONE, AND NOT inside a retraction (a corrected file quotes
+# the old false line on purpose, which must stay silent). Measured against all six real SOURCES.md:
+# zero false positives, including 04's own correction; fires on the induced 04 shape.
+PUBLISHER_CLAIM_RE = re.compile(
+    r"(the top \w+ rows|all (?:the )?rows|both (?:were|rows)|every row|these rows)"
+    r"[^.]{0,60}read[^.]{0,40}(?:at|directly at)[^.]{0,40}publisher", re.I)
+RETRACTION_RE = re.compile(
+    r"used to say|previously said|correct(?:ed|ion)|was (?:wrong|false)|no longer|struck|❌|🔴", re.I)
+
 
 def audit_rows(t):
     """The audit table's data rows: the FIRST contiguous run of table lines after the heading.
@@ -158,6 +177,24 @@ def check_one(path):
             errs.append(f"UNAUDITED CITATION: {u[:78]}\n"
                         f"          It appears in the prose but has no row in the audit table.\n"
                         f"          Every citation states its verification level, or it does not ship.")
+
+    # RULE 5: a COLLECTIVE prose claim that the rows were read at the publisher, contradicted by a
+    # load-bearing MIRROR/NONE row. Only fires when the table actually disagrees, and never inside a
+    # retraction. See the header above PUBLISHER_CLAIM_RE.
+    has_mirror_lb = any(
+        re.sub(r"[*`]", "", c[3]).strip().upper() in ("MIRROR", "NONE")
+        and re.sub(r"[*`]", "", c[1]).strip().upper() in LOAD_BEARING
+        for c in ([x.strip() for x in r.strip().strip("|").split("|")] for r in body)
+        if len(c) >= 4)
+    if has_mirror_lb:
+        for sent in re.split(r"(?<=[.!?])\s", t):
+            if PUBLISHER_CLAIM_RE.search(sent) and not RETRACTION_RE.search(sent):
+                errs.append(
+                    "FALSE PROVENANCE PROSE: a sentence claims rows were read at the publisher, but "
+                    "the table\n"
+                    f"          shows a load-bearing MIRROR or NONE row. The table is the statement; "
+                    "delete the prose.\n"
+                    f"          > {sent.strip()[:90]}")
     return errs, warns
 
 
