@@ -9,8 +9,8 @@ Phases: source | learn | build | verify | publish     Values: todo | wip | done
     learn    done
     build    done
     verify   done
-    publish  todo
-    live     todo
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -312,3 +312,24 @@ contains finished, verified work.
             🔗 Worth noting for 03 and for IEM: this is an ATS question, and 03 already proved there
             is no "the" ATS. Whether this one parallels its sources on transfer is a VENDOR fact, and
             BPA does not name the vendor.
+
+2026-07-17  publish: done. Pushed. Gate passed first, per the repo rule.
+
+2026-07-17  live: done.
+            https://skeeter-spec.github.io/power-service-toolbox/projects/07-switching-order/build/index.html
+
+            VERIFIED PROPERLY RATHER THAN BY STATUS CODE, which is 01's pattern and it is the only
+            one available: skeeter-spec.github.io is blocked in BOTH browser surfaces (the Browser
+            pane blocks it by policy, claude-in-chrome refuses the origin), so the live site cannot
+            be driven directly. Fetched the three files GitHub is actually serving, confirmed all
+            three byte identical to the local copies that were driven in a real browser, and ran the
+            full suite against the DOWNLOAD. 40/40.
+            ⚠ index.html served HTTP 503 for about a minute after the push while Pages built, on the
+            same URL that then served 200. A single fetch would have reported the deploy failed.
+
+            🔴 AND THE CONTROL WAS DEMANDED RATHER THAN ASSUMED, because 05 taught that a control
+            reporting silence can be a control that never ran. Corrupting the SERVED topology.js
+            (hanging the Auxiliary Bus Disconnect off the breaker instead of the line node, which is
+            the exact error the source phase made) takes the suite from 40 passed to 35 passed / 5
+            FAILED, exit 1. So the green above measures the served bytes and is not a suite that
+            cannot fail.

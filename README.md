@@ -70,7 +70,7 @@ The first four carry the weight. The rest round out the trade.
 | 04 | Relay bench | ANSI device numbers 50, 51, 27, 59, 87, 25, 86 as a configurable simulated relay. Set pickup and time dial, inject a fault current, watch it trip. |
 | 05 | **[Modbus frame codec](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)** ✅ **live** | The same PDU sent over serial and over TCP, side by side, reproducing the specification's own published hex worked examples byte for byte. It shows which parts of a Modbus TCP frame are fossils of an RS-485 bus, because the spec says so itself: the PDU is capped at 253 bytes by "the size constraint inherited from the first MODBUS implementation on Serial Line network", and MBAP spends a field on a Unit Identifier defined as a slave "connected on a serial line". It refuses to decode a 32 bit float, because the specification defines byte order within a register and defines no type wider than one. No meter register map ships: a meter's map belongs to its vendor, and none is sourced yet. |
 | 06 | Ladder logic interpreter | Encode a real close permissive: 86 lockout clear, 25 sync check OK, spring charged, no 50 or 51 trip. Verified against a truth table. |
-| 07 | Clearance limits on a published one line | Given a circuit and a job, which devices are the boundary? It reproduces three clearance limit answers the Bonneville Power Administration publishes for its own worked examples, out of one engine, from two figures traced at high magnification. BPA asks the same circuit two questions one page apart and publishes two different answers, and each answer is wrong for the other question, so a model with the topology subtly wrong cannot satisfy both. It never presents a generated sequence as BPA's, because no filled in switching order is published anywhere in the document's 86 pages: what BPA publishes is the limits, and the limits are the harder half. |
+| 07 | **[Clearance limits on a published one line](https://skeeter-spec.github.io/power-service-toolbox/projects/07-switching-order/build/index.html)** ✅ **live** | Given a circuit and a job, which devices are the boundary? It reproduces three clearance limit answers the Bonneville Power Administration publishes for its own worked examples, out of one engine, from two figures traced at high magnification. BPA asks the same circuit two questions one page apart and publishes two different answers, and each answer is wrong for the other question, so a model with the topology subtly wrong cannot satisfy both. It never presents a generated sequence as BPA's, because no filled in switching order is published anywhere in the document's 86 pages: what BPA publishes is the limits, and the limits are the harder half. |
 | 08 | NETA acceptance test checklist generator | Equipment type in, test plan out: insulation resistance, contact resistance, primary and secondary injection, trip timing. Structure and citation only. |
 | 09 | Commissioning script runner | Commissioning levels L1 to L5, a punch list tracker, a clean PDF field report. |
 | 10 | Three phase sandbox | Phasors, wye against delta, line against phase voltage and current, per unit, symmetrical fault current basics. |
@@ -79,14 +79,15 @@ The first four carry the weight. The rest round out the trade.
 
 <!-- BEGIN GENERATED: status. Do not hand edit. Regenerate: ./tools/build_readme.py -->
 
-**Four of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
+**Five of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
 
 - **01. Power chain one line explorer**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)
 - **02. TCC coordination studio**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)
 - **03. ATS sequence simulator**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/03-ats-sequence/build/index.html)
 - **05. Modbus meter test bench**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)
+- **07. Switching order and LOTO planner**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/07-switching-order/build/index.html)
 
-The other six are folders and a plan.
+The other five are folders and a plan.
 
 <!-- END GENERATED: status -->
 
