@@ -5,12 +5,12 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
-    learn    todo
-    build    todo
-    verify   todo
-    publish  todo
-    live     todo
+    source   done
+    learn    done
+    build    done
+    verify   done
+    publish  done
+    live     done
 
 An app is NOT pushed until `verify` passes. That discipline is the product: the repo only ever
 contains finished, verified work.
@@ -18,3 +18,23 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+2026-07-20  source: DONE. Two publisher/mirror worked examples, two independent hunter agents + a
+            self re-read at high magnification.
+            - DOE-HDBK-1011/3-92 ES-09 (public domain, read at energy.gov, byte-identical over two
+              GETs): line/phase and power-triangle relations, Examples 1 (delta) and 2 (wye), nine
+              printed answers. Found a source inconsistency: Ex1 prints P_T 158.2 kW but its shown
+              factor 1.73 gives 158.0. Reported, not reconciled.
+            - TM 5-811-14 App G Example 5 (US Army, read at a MIRROR; .mil/WBDG 403, DTIC rate
+              limited): per-unit conversion, base current 2405.6 A, symmetrical fault 9661/9434/9252 A.
+              App G is outside the manual's one IEEE-242 reprint (p4-3); public domain.
+2026-07-20  learn/build/verify: DONE. Hand-rolled SVG UI, dual node/browser engine. 41 verify checks,
+            17 mutants all dead (incl. 8 §F overclaim mutants: no network reduction, no equipment
+            rating verdict, no conformance claim, no mirror-as-publisher relabel, anomaly stays
+            disclosed). Both QA passes clean (structural JSON + visual). Not for field use banner ships
+            (guardrail 1). publish/live still todo: nothing committed or pushed yet. PROGRESS.log decides.
+2026-07-20  §F second reader (independent agent): re-read both worked examples fresh from the PDFs and
+            every number matched data.js exactly (two independent reads agreeing = the evidence). Its
+            overclaim hunt found categories 1-5 clean and CONFIRMED one #32 gap: the §F greps ran only
+            against the three build files, so README.md and SOURCES.md (which index.html points readers
+            at) were unguarded. Fixed: claim-surface grep widened to those docs + 2 mutants prove it.
+            42 checks, 19 mutants. publish/live: DONE, pushed. Core is 8 of 10 live.

@@ -1,0 +1,83 @@
+# Mutants for 10. Run: ./tools/mutate.sh projects/10-three-phase
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one MUST make the suite go red. A
+# survivor is a finding: dead code, a coverage hole, or an EQUIVALENT mutant no input can distinguish.
+#
+# ⚠ RUNNER CONSTRAINTS: mutants.txt is parsed with `IFS='|' read`, so A SED EXPRESSION MAY NOT CONTAIN
+# A PIPE. BSD sed works one line at a time, so every pattern targets a SINGLE line. Escape a literal *
+# as \*, a literal / as \/, and && as \&\& in the replacement.
+#
+# 10'S MUTANTS COME IN THE SAME FLAVOURS AS 05/06, AND SECTION F IS THE POINT.
+#   A. Break a DOE relation. ES-09 prints the nine answers, so these move a reproduced number.
+#   B. Break an internal-consistency guard (the connection is not guessed).
+#   C. Break the TM per-unit / fault reproduction (G-27..G-29).
+#   F. 🔴 BREAK NOTHING, AND ONLY MAKE THE TOOL CLAIM MORE THAN ITS SOURCE. Section F's mutants stop a
+#      refusal refusing, ship a rating verdict, claim conformance, upgrade the TM mirror to a publisher
+#      copy, or hide the documented anomaly. No reproduced number changes; the tool just overclaims.
+
+# ---------------------------------------------------------------- #
+# A. THE DOE RELATIONS. DOE-HDBK-1011/3-92, ES-09, eqs 9-5..9-11, Examples 1-2.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/? r \* vPhase :/? vPhase :/ | wye V_line loses the root three factor: Example 2 V_line would read 240 not the published 415.2 V
+build/engine.js | s/? r \* iPhase :/? iPhase :/ | delta I_line loses the root three factor: Example 1 I_line would read 200 not the published 346 A
+build/engine.js | s/  return r \* vLine \* iLine \* pf;/  return r \* vLine \* iLine;/ | real power drops the power factor: Example 2 P_T would read 71.8 not the published 64.6 kW
+build/engine.js | s/  return r \* vLine \* iLine;/  return r \* vLine \* iLine \* 1.01;/ | apparent power off by one percent: Example 1 S_T would not reproduce the published 263.4 kVA
+build/engine.js | s/  return Math.sqrt(1 - pf \* pf);/  return pf;/ | sin(theta) replaced by the power factor: Example 1 Q_T would not reproduce the published 210.7 kVAR
+
+# ---------------------------------------------------------------- #
+# B. INTERNAL CONSISTENCY. The ambiguous axis (wye vs delta) is a required argument, never a guess.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/if (c !== 'wye' && c !== 'delta') {/if (false) {/ | assertConnection stops throwing, so an unknown connection is silently treated as delta instead of erroring
+
+# ---------------------------------------------------------------- #
+# C. THE PER-UNIT / FAULT EXAMPLE. TM 5-811-14 App G Example 5, G-27..G-29.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/  return baseKVA \/ utilityKVA;/  return 2 \* baseKVA \/ utilityKVA;/ | utility per-unit doubled: X_u1 would read 0.008 not the published 0.004 pu
+build/engine.js | s/  return puOld \* baseKVA \/ equipKVA;/  return 2 \* puOld \* baseKVA \/ equipKVA;/ | own-base per-unit doubled: the generator and transformer pu lines would not reproduce 0.32/0.56/0.008
+build/engine.js | s/  return baseKVA \/ (r \* baseKV);/  return baseKVA \/ baseKV;/ | base current drops root three: I_base would read 4167 not the published 2405.6 A
+build/engine.js | s/  return baseCurrentA \/ puZ;/  return baseCurrentA \* puZ;/ | fault current multiplies instead of dividing: the 9661/9434/9252 A answers would not reproduce
+
+# ---------------------------------------------------------------- #
+# F. 🔴 THE REFUSALS. THESE MUTANTS BREAK NO REPRODUCED NUMBER AT ALL.
+#
+# Every check in sections A, B and C still passes under each. They only make the tool claim something
+# no source publishes. Nothing is BROKEN, so no ordinary test would look.
+# ---------------------------------------------------------------- #
+
+# The refusal stops refusing: reduceNetwork returns instead of throwing, so the tool silently claims to
+# have reduced a network it never studied.
+build/engine.js | s/function reduceNetwork(components) {/function reduceNetwork(components) { return null;/ | reduceNetwork stops refusing and returns a value, so the tool claims a network reduction it does not perform
+
+# The divide-by-zero guard removed: a zero per-unit impedance would return Infinity dressed as a fault
+# current, rather than refusing.
+build/engine.js | s/if (puZ <= 0) throw/if (false) throw/ | faultCurrent stops refusing a non-positive per-unit impedance, returning Infinity as a "fault current"
+
+# THE DANGEROUS ONE, FROM THE UI. A rating verdict a future session might add in good faith, in a tool
+# whose banner says it does exactly this NOT.
+build/index.html | s/<h1>Three-phase sandbox<\/h1>/<h1>Three-phase sandbox<\/h1><p>the bus is safe to energize<\/p>/ | an equipment-rating verdict ("safe to energize") is shipped, exactly the claim guardrail 1 forbids
+
+# A standards-conformance claim to a document this repo has not read.
+build/index.html | s/<p class="sub">/<p>conforms to IEEE C37.010<\/p><p class="sub">/ | a conformance claim to IEEE C37.010 is shipped, a standard this repo has not read
+
+# THE PROVENANCE OVERCLAIM. Upgrading the TM mirror to a publisher copy is confidently wrong about
+# where the number was read (#18: a mirror carries a revision risk a publisher copy does not).
+build/data.js | s/tm:  'MIRROR./tm:  'PUBLISHER./ | the TM mirror is relabelled a publisher copy, an overclaim the mirror provenance forbids
+
+# HIDING THE DOCUMENTED ANOMALY. The Example 1 P_T inconsistency must stay disclosed on screen; a
+# future edit that drops the note would pass section A and this catches it.
+build/index.html | s/shown not hidden/shown/ | the on-screen disclosure of the Example 1 P_T anomaly is removed, hiding a published inconsistency
+
+# THE EQUAL AND OPPOSITE ERROR: corrupting the pinned anomaly value. The book's shown factors give
+# 158.0; asserting anything else is as wrong as hiding the 158.2 the book prints.
+build/data.js | s/fromShownFactorsKW: 158.0/fromShownFactorsKW: 158.1/ | the pinned "from shown factors" value is corrupted, so section A no longer reproduces the book's own 158.0 kW
+
+# THE CLAIM SURFACE, WIDENED after a second reader found the greps ran only against the build files
+# (#32). These prove the rating-verdict and conformance greps now cover README.md and SOURCES.md, the
+# reader-facing docs index.html points at, where promotional language would most likely creep in.
+README.md | s/# 10. Three phase sandbox/# 10. Three phase sandbox conforms to IEEE C37.010/ | a conformance claim added to the GitHub-facing README is now caught by the widened claim-surface grep
+sources/SOURCES.md | s/# 10 Three-phase sandbox. Sources./# 10 Three-phase sandbox. Sources. the bus is safe to energize/ | an equipment-rating verdict added to SOURCES.md is now caught by the widened claim-surface grep

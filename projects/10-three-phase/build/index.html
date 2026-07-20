@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three-phase sandbox</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #fff; --ink: #14181f; --muted: #5c6673; --line: #d7dce3;
+    --live: #1a6fd4; --dead: #b9c0c9; --hot: #c0392b; --warn: #b3690f; --good: #17794a;
+    --accent: #0f2f5e; --fossil: #7d3fb3; --grid: #e3e7ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1a1f27; --ink: #e8ecf1; --muted: #98a3b3; --line: #2c343f;
+      --live: #4a9eff; --dead: #3a424e; --hot: #ff6b5b; --warn: #e0a03c; --good: #3ecf8e;
+      --accent: #9dc4ff; --fossil: #c08cf0; --grid: #222932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .banner { background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 14px; font-size: 13.5px; }
+  .banner strong { color: var(--warn); }
+  .thesis { background: color-mix(in srgb, var(--fossil) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--fossil) 40%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 18px; font-size: 13.5px; }
+  .thesis strong { color: var(--fossil); }
+  .cols { display: grid; grid-template-columns: 340px minmax(0,1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card + .card { margin-top: 14px; }
+  h2 { font-size: 13px; margin: 26px 0 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+  h3 { font-size: 13px; margin: 0 0 10px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .cite { font-size: 11.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 10px; }
+  .cite em { color: var(--ink); font-style: normal; }
+  .field { margin-bottom: 11px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; letter-spacing: .01em; }
+  .field input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--bg); color: var(--ink); font: 14px ui-monospace, Menlo, monospace; }
+  .field input:focus { outline: none; border-color: var(--live); }
+  .seg { display: flex; gap: 6px; margin-bottom: 12px; }
+  .seg button, .presets button { flex: 1; padding: 8px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--bg); color: var(--ink); font: 600 13px sans-serif; cursor: pointer; }
+  .seg button.on { background: var(--live); color: #fff; border-color: var(--live); }
+  .presets { display: flex; gap: 6px; margin-top: 4px; }
+  .presets button { font-weight: 500; font-size: 12px; }
+  .presets button:hover, .seg button:hover { border-color: var(--live); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: ui-monospace, Menlo, monospace; }
+  .big { font: 700 15px ui-monospace, Menlo, monospace; }
+  .match { color: var(--good); font-weight: 600; }
+  .anomaly { background: color-mix(in srgb, var(--warn) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 8px;
+    padding: 9px 12px; margin-top: 12px; font-size: 12.5px; }
+  .refusal { background: color-mix(in srgb, var(--hot) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--hot) 35%, transparent); border-radius: 8px;
+    padding: 9px 12px; margin-top: 12px; font-size: 12.5px; }
+  .refusal strong { color: var(--hot); }
+  svg { display: block; max-width: 100%; }
+  .mono { font-family: ui-monospace, Menlo, monospace; }
+  .pu-line { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0;
+    border-bottom: 1px solid var(--grid); font-size: 13px; }
+  .pu-line .calc { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .overflow { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Three-phase sandbox</h1>
+  <p class="sub">Line against phase, wye against delta, the power triangle, per unit, and symmetrical fault current, each checked against a published worked example.</p>
+
+  <div class="banner"><strong>Educational. Not for field use.</strong> This reproduces published worked
+    examples so they can be explored interactively. It does not tell you whether your gear is rated for a
+    fault, and it is not a substitute for an engineered study, the manufacturer's instructions, or a
+    qualified person on site.</div>
+
+  <div class="thesis"><strong>Why this exists.</strong> A field tech who can reproduce the book's numbers
+    by hand, and show the work, reads a one-line and a short-circuit study differently. Every
+    number below traces to a page, and the tool refuses to compute the things the book does not publish.</div>
+
+  <h2>1 &nbsp; Line vs phase, and the power triangle</h2>
+  <div class="cols">
+    <div class="card">
+      <h3>Balanced load</h3>
+      <div class="seg" id="conn">
+        <button data-c="delta" class="on">Delta</button>
+        <button data-c="wye">Wye</button>
+      </div>
+      <div class="field"><label>Phase voltage V&phi; (volts)</label><input id="vph" type="number" value="440"></div>
+      <div class="field"><label>Phase current I&phi; (amps)</label><input id="iph" type="number" value="200"></div>
+      <div class="field"><label>Power factor (0 to 1, lagging)</label><input id="pf" type="number" step="0.01" value="0.6"></div>
+      <div class="presets">
+        <button data-ex="1">Load DOE Example 1</button>
+        <button data-ex="2">Load DOE Example 2</button>
+      </div>
+      <p class="note">Presets reproduce the book with its own root three (1.73). Free-form entry computes
+        at full precision.</p>
+    </div>
+
+    <div class="card">
+      <div class="overflow"><svg id="phasor" viewBox="0 0 300 220" width="300" height="220" aria-label="phasor diagram"></svg></div>
+      <div class="overflow"><table id="results"></table></div>
+      <div id="anomaly"></div>
+      <div class="cite" id="doe-cite"><em>DOE-HDBK-1011/3-92</em>, ES-09 &ldquo;Basic AC Power&rdquo;, Rev 0
+        (public domain, U.S. Department of Energy, read at energy.gov). Eqs 9-5 through 9-11, Examples 1 and 2.</div>
+    </div>
+  </div>
+
+  <h2>2 &nbsp; Per unit and symmetrical fault current</h2>
+  <div class="cols">
+    <div class="card">
+      <h3>Fault = I_base &divide; Z_pu</h3>
+      <div class="field"><label>Base current I_base (amps)</label><input id="ibase" type="number" value="2405.6"></div>
+      <div class="field"><label>Reduced per-unit impedance Z_pu</label><input id="zpu" type="number" step="0.001" value="0.249"></div>
+      <p class="big" id="fault-out"></p>
+      <div class="refusal"><strong>What this will not do.</strong> It will not reduce a one-line to that
+        Z_pu. Combining a network of impedances to one Thevenin per-unit value is the engineered
+        short-circuit study, and a wrong Z_pu makes the fault current wrong. Supply a Z_pu from a study,
+        or use the published example's reduced values.</div>
+    </div>
+
+    <div class="card">
+      <h3>TM 5-811-14, Appendix G, Example 5</h3>
+      <p class="note" style="margin-top:0">Base 2000 kVA; base kV 12.47 / 4.16 / 0.480. Per-unit conversion
+        lines (published input &rarr; published pu):</p>
+      <div id="pu-lines"></div>
+      <div class="overflow"><table id="fault-table" style="margin-top:12px"></table></div>
+      <div class="cite"><em>TM 5-811-14</em>, &ldquo;Coordinated Power Systems Protection&rdquo; (US Army),
+        App G, Example 5, G-27 to G-29. Read at a <strong>mirror</strong>; App G is outside the manual's
+        one IEEE-242 reprint (p4-3) and is U.S. Army Corps of Engineers public-domain content. See
+        <span class="mono">sources/SOURCES.md</span>.</div>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:26px">Source of truth for this tool's status is
+    <span class="mono">PROGRESS.log</span>. Verify with <span class="mono">node verify/verify.js</span>.</p>
+</div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var D = window.TP_DATA, E = window.TP_ENGINE;
+  var state = { conn: 'delta', book: null };   // book = the loaded example, or null for free-form
+
+  var $ = function (id) { return document.getElementById(id); };
+  function fmt(x, d) { var p = Math.pow(10, d); return (Math.round(x * p) / p).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+
+  /* ---- Section 1: DOE line/phase + power triangle ---- */
+  function computeDOE() {
+    var vPhase = parseFloat($('vph').value), iPhase = parseFloat($('iph').value), pf = parseFloat($('pf').value);
+    if (!isFinite(vPhase) || !isFinite(iPhase) || !isFinite(pf) || pf < 0 || pf > 1) { $('results').innerHTML = '<tr><td>Enter V&phi;, I&phi;, and a power factor in [0,1].</td></tr>'; drawPhasor(state.conn); return; }
+    var root3 = state.book ? D.ROOT3_DOE : undefined;   // presets use the book's 1.73; free-form is full precision
+    var r = E.solve(state.conn, vPhase, iPhase, pf, root3);
+    var rows = [
+      ['V_line', fmt(r.vLine, 1) + ' V', state.conn === 'wye' ? '&radic;3 &middot; V&phi;' : 'V&phi;'],
+      ['I_line', fmt(r.iLine, 1) + ' A', state.conn === 'delta' ? '&radic;3 &middot; I&phi;' : 'I&phi;'],
+      ['P_T', fmt(r.realW / 1000, 1) + ' kW', '&radic;3 &middot; V_L &middot; I_L &middot; cos&theta;'],
+      ['Q_T', fmt(r.reactiveVAR / 1000, 1) + ' kVAR', '&radic;3 &middot; V_L &middot; I_L &middot; sin&theta;'],
+      ['S_T', fmt(r.apparentVA / 1000, 1) + ' kVA', '&radic;3 &middot; V_L &middot; I_L']
+    ];
+    var head = '<tr><th>Quantity</th><th class="num">Value</th><th>Formula</th></tr>';
+    var body = rows.map(function (row) {
+      var match = '';
+      if (state.book) {
+        var p = state.book.printed;
+        var key = { 'V_line': p.vLine + ' V', 'I_line': p.iLine + ' A', 'P_T': p.PT_kW + ' kW', 'Q_T': p.QT_kVAR + ' kVAR', 'S_T': p.ST_kVA + ' kVA' }[row[0]];
+        if (key) match = '<span class="match" title="published value">book: ' + key + '</span>';
+      }
+      return '<tr><td>' + row[0] + '</td><td class="num big">' + row[1] + '</td><td class="note" style="margin:0">' + row[2] + (match ? '<br>' + match : '') + '</td></tr>';
+    }).join('');
+    $('results').innerHTML = head + body;
+
+    // Example 1 P_T anomaly disclosure
+    if (state.book && state.book.id === 1) {
+      var a = D.DOE_PT_ANOMALY;
+      $('anomaly').innerHTML = '<div class="anomaly"><strong>A published inconsistency, shown not hidden.</strong> '
+        + 'ES-09-22 prints P_T = <span class="mono">' + a.printedKW.toFixed(1) + ' kW</span>, but the book\'s own shown '
+        + 'factor 1.73 gives <span class="mono">' + a.fromShownFactorsKW.toFixed(1) + ' kW</span> (and its S_T &times; 0.6 = 158.0 too). '
+        + 'The 158.2 matches full-precision root three, so the book rounded &radic;3 two ways within one example. Reported, not reconciled.</div>';
+    } else { $('anomaly').innerHTML = ''; }
+    drawPhasor(state.conn);
+  }
+
+  function drawPhasor(conn) {
+    var cx = 150, cy = 110, R = 74;
+    var angs = [-90, 30, 150];   // three phase vectors 120 deg apart
+    var cols = ['var(--live)', 'var(--hot)', 'var(--good)'];
+    var names = ['A', 'B', 'C'];
+    var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--grid)"/>';
+    angs.forEach(function (a, i) {
+      var rad = a * Math.PI / 180, x = cx + R * Math.cos(rad), y = cy + R * Math.sin(rad);
+      s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + cols[i] + '" stroke-width="2.5"/>';
+      var lx = cx + (R + 14) * Math.cos(rad), ly = cy + (R + 14) * Math.sin(rad);
+      s += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" fill="' + cols[i] + '" font-size="12" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">' + names[i] + '</text>';
+    });
+    s += '<text x="' + cx + '" y="205" fill="var(--muted)" font-size="11" text-anchor="middle">'
+      + (conn === 'wye' ? 'Wye: phase vectors to neutral; line = &radic;3 &times; phase' : 'Delta: line = phase voltage; line current = &radic;3 &times; phase') + '</text>';
+    $('phasor').innerHTML = s;
+  }
+
+  /* ---- Section 2: per-unit example + interactive fault ---- */
+  function renderPU() {
+    var PU = D.PU_EXAMPLE;
+    $('pu-lines').innerHTML = PU.conversions.map(function (c) {
+      return '<div class="pu-line"><span>' + c.label + ' <span class="calc">= ' + c.calc + '</span></span><span class="mono">' + c.pu + ' pu <span class="note" style="margin:0">(' + c.eq + ')</span></span></div>';
+    }).join('');
+    var bc = E.baseCurrent(PU.baseKVA, PU.baseCurrent.baseKV);
+    var head = '<tr><th>Fault current</th><th>= I_base &divide; Z_pu</th><th class="num">Amps</th></tr>';
+    var rows = ['subtransient', 'transient', 'synchronous'].map(function (k) {
+      var f = PU.fault[k];
+      var got = E.faultCurrent(PU.baseCurrent.amps, f.puZ);
+      return '<tr><td>' + f.label + '</td><td class="mono">' + fmt(bc, 1) + ' &divide; ' + f.puZ + '</td><td class="num big">' + fmt(got, 0) + ' <span class="match">= ' + f.amps + '</span></td></tr>';
+    }).join('');
+    $('fault-table').innerHTML = head + rows;
+  }
+
+  function computeFault() {
+    var ib = parseFloat($('ibase').value), z = parseFloat($('zpu').value);
+    if (!isFinite(ib) || !isFinite(z) || z <= 0) { $('fault-out').innerHTML = 'Enter a base current and a positive per-unit impedance.'; return; }
+    $('fault-out').innerHTML = 'I_fault = ' + fmt(E.faultCurrent(ib, z), 0) + ' A <span class="note" style="font-weight:400">(computed from your input, not a published value)</span>';
+  }
+
+  /* ---- wire up ---- */
+  Array.prototype.forEach.call($('conn').children, function (b) {
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call($('conn').children, function (x) { x.classList.remove('on'); });
+      b.classList.add('on'); state.conn = b.getAttribute('data-c'); state.book = null; computeDOE();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.presets button'), function (b) {
+    b.addEventListener('click', function () {
+      var ex = D.DOE_EXAMPLES.find(function (e) { return e.id === parseInt(b.getAttribute('data-ex'), 10); });
+      state.book = ex; state.conn = ex.connection;
+      Array.prototype.forEach.call($('conn').children, function (x) { x.classList.toggle('on', x.getAttribute('data-c') === ex.connection); });
+      $('vph').value = ex.given.vPhase; $('iph').value = ex.given.iPhase; $('pf').value = ex.given.pf;
+      computeDOE();
+    });
+  });
+  ['vph', 'iph', 'pf'].forEach(function (id) { $(id).addEventListener('input', function () { state.book = null; computeDOE(); }); });
+  ['ibase', 'zpu'].forEach(function (id) { $(id).addEventListener('input', computeFault); });
+
+  // start on DOE Example 1 so the reproduction is visible immediately
+  (function () {
+    var ex1 = D.DOE_EXAMPLES.find(function (e) { return e.id === 1; });
+    state.book = ex1; state.conn = 'delta';
+    computeDOE(); renderPU(); computeFault();
+  })();
+})();
+</script>
+</body>
+</html>

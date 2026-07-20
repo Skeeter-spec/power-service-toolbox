@@ -73,13 +73,13 @@ The first four carry the weight. The rest round out the trade.
 | 07 | **[Clearance limits on a published one line](https://skeeter-spec.github.io/power-service-toolbox/projects/07-switching-order/build/index.html)** ✅ **live** | Given a circuit and a job, which devices are the boundary? It reproduces three clearance limit answers the Bonneville Power Administration publishes for its own worked examples, out of one engine, from two figures traced at high magnification. BPA asks the same circuit two questions one page apart and publishes two different answers, and each answer is wrong for the other question, so a model with the topology subtly wrong cannot satisfy both. It never presents a generated sequence as BPA's, because no filled in switching order is published anywhere in the document's 86 pages: what BPA publishes is the limits, and the limits are the harder half. |
 | 08 | NETA acceptance test checklist generator | Equipment type in, test plan out: insulation resistance, contact resistance, primary and secondary injection, trip timing. Structure and citation only. |
 | 09 | Commissioning script runner | Commissioning levels L1 to L5, a punch list tracker, a clean PDF field report. |
-| 10 | Three phase sandbox | Phasors, wye against delta, line against phase voltage and current, per unit, symmetrical fault current basics. |
+| 10 | **[Three phase sandbox](https://skeeter-spec.github.io/power-service-toolbox/projects/10-three-phase/build/index.html)** ✅ **live** | Line against phase, wye against delta, the power triangle, per unit, and symmetrical fault current, each reproduced from a published worked example. It reproduces the DOE handbook's delta and wye examples to the book's own precision, and surfaces a rounding inconsistency the book prints in one of them rather than smoothing it over. It reproduces the Army TM 5-811-14 per unit and fault current example, base current through to the fault at the bus, but it refuses to reduce a one line to its per unit impedance, because that is the engineered study, and it ships no equipment rating verdict. |
 
 ## Status
 
 <!-- BEGIN GENERATED: status. Do not hand edit. Regenerate: ./tools/build_readme.py -->
 
-**Seven of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
+**Eight of the ten tools are live**, meaning they have passed the gate above and are running where you can click them:
 
 - **01. Power chain one line explorer**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/01-power-chain/build/index.html)
 - **02. TCC coordination studio**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/02-tcc-coordination/build/index.html)
@@ -88,8 +88,9 @@ The first four carry the weight. The rest round out the trade.
 - **05. Modbus meter test bench**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/05-modbus-meter/build/index.html)
 - **06. Ladder logic interpreter**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/06-ladder-logic/build/index.html)
 - **07. Switching order and LOTO planner**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/07-switching-order/build/index.html)
+- **10. Three phase sandbox**: [live demo](https://skeeter-spec.github.io/power-service-toolbox/projects/10-three-phase/build/index.html)
 
-The other three are folders and a plan.
+The other two are folders and a plan.
 
 <!-- END GENERATED: status -->
 
