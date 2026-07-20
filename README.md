@@ -104,12 +104,16 @@ line below it, outside the generated fence, hand typed when 01 was the only live
 nine when four were live. The rule was correct and written down and the sentence next to it rotted
 anyway, because a rule you have to remember is not a mechanism. The count is inside the fence now.
 
-Order of work: 01, 02, 03, then 05. Not a typo. 04 is the relay bench, and it is parked at `source`
-because two of its seven ANSI device numbers have nothing citable behind them: the only primary for
-25 sync check answers HTTP 403, and 86 is a latch with no published math to reproduce at all. The
+Order of work ran 01, 02, 03, then 05, before 04. Not a typo. 04, the relay bench, sat at `source`
+for a stretch because two of its seven ANSI device numbers had nothing citable behind them: the sync
+check primary answered HTTP 403, and 86 was a latch with no published math to reproduce at all. The
 gate is on publishing, not on sequence, so rather than fill those two in from a search engine's
-synthesis and call it sourced, 04 waits and 05 went ahead. A tool stalled at `source` is the rule
-working. It is the only part of this repo that ever gets to say no on your behalf.
+synthesis and call it sourced, 04 waited while 05 went ahead. It shipped only once 86 was traced to
+the GE 850 non volatile latch truth table and 25 to a published SEL advance angle example. Two tools
+are still waiting the same way: 08 and 09 stay unbuilt because NETA acceptance testing and
+commissioning are gated documents with no free reproducible example to check against. A tool stalled
+at `source` is the rule working. It is the only part of this repo that ever gets to say no on your
+behalf.
 
 **What the gate cost 01, since that is the only honest way to show a rule is real.** Mutation testing
 the verify suite (breaking the engine on purpose to prove the tests could go red) found that an entire
