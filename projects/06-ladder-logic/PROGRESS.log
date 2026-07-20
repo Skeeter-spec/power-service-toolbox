@@ -5,10 +5,10 @@ Update this first, then mirror the phase cells into mission-control/projects.csv
 
 Phases: source | learn | build | verify | publish     Values: todo | wip | done
 
-    source   todo
-    learn    todo
-    build    todo
-    verify   todo
+    source   done
+    learn    done
+    build    done
+    verify   done
     publish  todo
     live     todo
 
@@ -18,3 +18,9 @@ contains finished, verified work.
 ## Log
 
 2026-07-15  Scaffolded. No work started.
+2026-07-20  Source reuses project 04's traced primaries (GE 850 Non-volatile Latch p4-414; SEL advance
+            angle Thompson p5). Built rungs.js + engine.js + index.html. verify.js: 31 checks pass
+            across sections A (latch table), B (permissive, all 32 inputs), C (advance angle), F
+            (refusals). 16 mutants, all killed. source/learn/build/verify -> done. publish/live stay
+            todo until pushed (repo discipline: nothing ships until the gate is green and it is pushed
+            on purpose).

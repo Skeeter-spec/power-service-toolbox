@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ladder logic interpreter</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #fff; --ink: #14181f; --muted: #5c6673; --line: #d7dce3;
+    --live: #1a6fd4; --dead: #b9c0c9; --hot: #c0392b; --warn: #b3690f; --good: #17794a;
+    --accent: #0f2f5e; --fossil: #7d3fb3; --grid: #e3e7ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1a1f27; --ink: #e8ecf1; --muted: #98a3b3; --line: #2c343f;
+      --live: #4a9eff; --dead: #3a424e; --hot: #ff6b5b; --warn: #e0a03c; --good: #3ecf8e;
+      --accent: #9dc4ff; --fossil: #c08cf0; --grid: #222932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .banner {
+    background: color-mix(in srgb, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 14px; font-size: 13.5px;
+  }
+  .banner strong { color: var(--warn); }
+  .thesis {
+    background: color-mix(in srgb, var(--fossil) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--fossil) 40%, transparent);
+    border-radius: 8px; padding: 10px 13px; margin: 0 0 18px; font-size: 13.5px;
+  }
+  .thesis strong { color: var(--fossil); }
+  .cols { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card + .card { margin-top: 14px; }
+  h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .cite { font-size: 11.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 8px; }
+  .cite em { color: var(--ink); font-style: normal; }
+
+  /* input toggles */
+  .toggles { display: flex; flex-direction: column; gap: 7px; }
+  .tog {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; cursor: pointer;
+    background: var(--bg); user-select: none;
+  }
+  .tog:hover { border-color: var(--live); }
+  .tog .name { font-weight: 600; font-size: 13.5px; }
+  .tog .desc { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+  .pill {
+    font: 600 11px/1 ui-monospace, Menlo, monospace; padding: 5px 9px; border-radius: 999px;
+    border: 1px solid var(--line); min-width: 66px; text-align: center;
+  }
+  .pill.on  { background: color-mix(in srgb, var(--hot) 16%, transparent); color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, transparent); }
+  .pill.off { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+
+  /* the coil verdict */
+  .coil {
+    text-align: center; padding: 16px; border-radius: 10px; margin-bottom: 12px;
+    border: 1px solid var(--line); font-weight: 700; font-size: 17px; letter-spacing: .01em;
+  }
+  .coil.permit { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+  .coil.block  { background: color-mix(in srgb, var(--hot) 14%, transparent); color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, transparent); }
+  .coil small { display: block; font-weight: 400; font-size: 12px; margin-top: 4px; color: var(--muted); }
+
+  /* rung readout */
+  .rungs { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+  .rung {
+    display: flex; align-items: center; gap: 9px; font-size: 12.5px;
+    padding: 6px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg);
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .rung .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+  .rung.ok .dot   { background: var(--good); }
+  .rung.bad .dot  { background: var(--hot); }
+  .rung.ok  { color: var(--good); }
+  .rung.bad { color: var(--hot); }
+
+  /* truth tables */
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 4px; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: center; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
+  td.mean { text-align: left; color: var(--muted); font-size: 11.5px; }
+  tr.hit td { background: color-mix(in srgb, var(--live) 14%, transparent); font-weight: 600; }
+
+  /* refusal box */
+  .refusal {
+    font-size: 12.5px; padding: 11px 13px; border-radius: 8px; margin-top: 4px;
+    background: color-mix(in srgb, var(--fossil) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--fossil) 35%, transparent);
+  }
+  .refusal strong { color: var(--fossil); }
+  .demorgan { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; margin-top: 4px; }
+  .demorgan .agree { color: var(--good); font-weight: 600; }
+  .calc { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .calc .ans { color: var(--good); font-weight: 700; }
+  a { color: var(--live); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ladder logic interpreter</h1>
+  <p class="sub">A close permissive, built from named protection elements. Toggle the inputs and watch the close coil.</p>
+
+  <div class="banner">
+    <strong>Educational. Not for field use.</strong> This reproduces a published truth table so it can
+    be explored. It is not an engineered study, a relay setting, or a qualified person on site.
+  </div>
+
+  <div class="thesis">
+    <strong>What is sourced, and what is this tool's own work.</strong> The 86 latch truth table below
+    is published (GE Multilin 850, Non-volatile Latch, p4-414) and is reproduced exactly. The close
+    permissive that combines the elements is this tool's own construction from those named parts. It is
+    verified as self consistent boolean logic, not as any one vendor's factory scheme, because none was
+    sourced. The tool refuses to name one it did not read.
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <h2>Close permissive</h2>
+        <div id="coil" class="coil"></div>
+        <div class="toggles" id="permitToggles"></div>
+        <div class="rungs" id="rungs"></div>
+        <p class="note" id="permitHint"></p>
+        <div class="demorgan" id="demorgan"></div>
+        <p class="cite">The rung <em>no 50 or 51 trip</em> is written NOT(50 OR 51). De Morgan makes it
+          equal to (NOT 50) AND (NOT 51); the interpreter shows both forms agree for the current inputs.</p>
+      </div>
+
+      <div class="card">
+        <h2>The 86 latch, on its own</h2>
+        <p class="note" style="margin-top:0">A lockout relay is a latch. Set it with a trip, and it
+          HOLDS with no input. Reset dominant means a reset always wins, so an operator can always
+          clear it. The output survives a reboot, which is what a hand reset lockout does.</p>
+        <div class="toggles" id="latchToggles"></div>
+        <table id="latchTable"><thead><tr><th>Set</th><th>Reset</th><th>Output</th><th style="text-align:left">Meaning</th></tr></thead><tbody></tbody></table>
+        <p class="cite"><em>GE Multilin 850 Feeder Protection System Instruction Manual v2.0x (2017),
+          Non-volatile Latches, p4-414, Reset Dominant.</em> Read at a distributor mirror; the current
+          v4.3x is login walled and unread. A latch truth table is a logic primitive, so the stale
+          revision risk that applies to a setpoint does not apply here.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>25 advance angle (sourced example)</h2>
+        <p class="note" style="margin-top:0">One published worked example for the sync check timing.</p>
+        <div class="calc" id="calc"></div>
+        <p class="cite"><em>SEL, Fundamentals and Advancements in Generator Synchronizing Systems
+          (M. J. Thompson, 2012), p5.</em> advance angle = slip x 360 x CBCT. Read at the SEL CDN.
+          Shown as its own panel, not wired into a defaulted in sync verdict, because no relay default
+          was read at a current publisher copy.</p>
+      </div>
+
+      <div class="card">
+        <h2>What this tool refuses</h2>
+        <div class="refusal" id="refusal"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="rungs.js"></script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var D = window.LADDER_DATA, E = window.LADDER_ENGINE;
+
+  // ---- close permissive ----
+  var permit = Object.assign({}, D.PERMIT_REQUIRED);   // start in the permitting state
+
+  function renderPermit() {
+    var togs = document.getElementById('permitToggles');
+    togs.innerHTML = '';
+    D.PERMIT_INPUTS.forEach(function (k) {
+      var on = permit[k] === true;
+      // Color by whether this input is in its PERMITTING state, not by raw assertion: two of the five
+      // (sync, spring) permit when asserted, three (86, 50, 51) permit when clear. Green means this
+      // input helps the close; red means it blocks. The text still shows the literal input state.
+      var satisfies = permit[k] === D.PERMIT_REQUIRED[k];
+      var el = document.createElement('div');
+      el.className = 'tog';
+      el.innerHTML = '<span><span class="name">' + D.INPUT_LABELS[k] + '</span></span>' +
+                     '<span class="pill ' + (satisfies ? 'off' : 'on') + '">' + (on ? 'ASSERTED' : 'clear') + '</span>';
+      el.onclick = function () { permit[k] = !permit[k]; renderPermit(); };
+      togs.appendChild(el);
+    });
+
+    var ok = E.closePermit(permit);
+    var coil = document.getElementById('coil');
+    coil.className = 'coil ' + (ok ? 'permit' : 'block');
+    coil.innerHTML = (ok ? 'CLOSE PERMITTED' : 'CLOSE BLOCKED') +
+      '<small>' + (ok ? 'every condition is satisfied' : 'one or more conditions block the close') + '</small>';
+
+    // per rung readout: which conditions pass
+    var conds = [
+      { ok: permit.lockout86 === false, t: '86 lockout CLEAR' },
+      { ok: permit.syncOk25 === true, t: '25 sync check OK' },
+      { ok: permit.springCharged === true, t: 'closing spring charged' },
+      { ok: permit.trip50 !== true, t: 'no 50 instantaneous trip' },
+      { ok: permit.trip51 !== true, t: 'no 51 time overcurrent trip' }
+    ];
+    var rungs = document.getElementById('rungs');
+    rungs.innerHTML = '';
+    conds.forEach(function (c) {
+      var r = document.createElement('div');
+      r.className = 'rung ' + (c.ok ? 'ok' : 'bad');
+      r.innerHTML = '<span class="dot"></span><span>' + (c.ok ? '✓ ' : '✗ ') + c.t + '</span>';
+      rungs.appendChild(r);
+    });
+
+    var need = D.PERMIT_INPUTS.map(function (k) {
+      return D.INPUT_LABELS[k] + ' ' + (D.PERMIT_REQUIRED[k] ? 'asserted' : 'clear');
+    }).join(', ');
+    document.getElementById('permitHint').textContent = 'It takes all of: ' + need + '.';
+
+    // De Morgan, live
+    var orForm = E.noOvercurrent_orForm(permit), andForm = E.noOvercurrent_andForm(permit);
+    document.getElementById('demorgan').innerHTML =
+      'NOT(50 OR 51) = ' + orForm + '  and  (NOT 50) AND (NOT 51) = ' + andForm +
+      '  <span class="agree">' + (orForm === andForm ? '✓ agree' : 'DISAGREE') + '</span>';
+  }
+
+  // ---- 86 latch ----
+  var latch = { set: true, reset: false, prev: false };
+
+  function renderLatch() {
+    var togs = document.getElementById('latchToggles');
+    togs.innerHTML = '';
+    [['set', 'SET input', 'a trip asserts this'], ['reset', 'RESET input', 'an operator asserts this'],
+     ['prev', 'prior output', 'the held state before this step']].forEach(function (pair) {
+      var k = pair[0], on = latch[k] === true;
+      var el = document.createElement('div');
+      el.className = 'tog';
+      el.innerHTML = '<span><span class="name">' + pair[1] + '</span> <span class="desc">' + pair[2] + '</span></span>' +
+                     '<span class="pill ' + (on ? 'on' : 'off') + '">' + (on ? 'ON' : 'off') + '</span>';
+      el.onclick = function () { latch[k] = !latch[k]; renderLatch(); };
+      togs.appendChild(el);
+    });
+
+    var out = E.latchOutput(latch.set, latch.reset, latch.prev);
+    var tb = document.querySelector('#latchTable tbody');
+    tb.innerHTML = '';
+    D.LATCH_TRUTH_TABLE.forEach(function (row) {
+      var hit = row.set === latch.set && row.reset === latch.reset;
+      var shown = row.out === 'Previous State' ? 'Previous State' : row.out;
+      var tr = document.createElement('tr');
+      if (hit) tr.className = 'hit';
+      tr.innerHTML = '<td>' + (row.set ? 'On' : 'Off') + '</td><td>' + (row.reset ? 'On' : 'Off') + '</td>' +
+                     '<td>' + shown + (hit && row.out === 'Previous State' ? ' = ' + out : '') + '</td>' +
+                     '<td class="mean">' + row.meaning + '</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  // ---- 25 advance angle ----
+  (function () {
+    var ex = D.SYNC_EXAMPLE;
+    var sec = ex.breakerCloseCycles / ex.systemHz;
+    var ang = E.advanceAngleDeg(ex.slipHz, sec);
+    var rate = E.slipRateDegPerSec(ex.slipHz);
+    document.getElementById('calc').innerHTML =
+      ex.slipHz + ' Hz slip x 360 x (' + ex.breakerCloseCycles + '/' + ex.systemHz + ' s)' +
+      ' = <span class="ans">' + ang.toFixed(1) + ' deg</span><br>' +
+      'slip as a rate = ' + ex.slipHz + ' x 360 = <span class="ans">' + rate.toFixed(0) + ' deg per second</span>';
+  })();
+
+  // ---- refusal ----
+  (function () {
+    var msg;
+    try { E.factoryPermissive(undefined); msg = '(no refusal, which would be a bug)'; }
+    catch (e) { msg = e.message; }
+    document.getElementById('refusal').innerHTML =
+      '<strong>No factory scheme.</strong> ' + msg +
+      '<br><br>No relay default setting ships as fact either: the one relay default in the sources was' +
+      ' read on a stale mirror, so it is not presented as a setpoint. Device numbers follow IEEE C37.2' +
+      ' convention; the standard itself is gated and unread.';
+  })();
+
+  renderPermit();
+  renderLatch();
+})();
+</script>
+</body>
+</html>

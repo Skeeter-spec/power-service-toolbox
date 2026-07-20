@@ -12,8 +12,12 @@ See `PROGRESS.log`. It is the source of truth for this project.
 
 ## Verify against
 
-_To be filled during the `source` phase._ This project is not published until it reproduces a
-published worked example and the number matches the book.
+**GE Multilin 850 Instruction Manual, Non-volatile Latches, p4-414 (Reset Dominant truth table)**, and
+the **SEL advance angle worked example (Thompson 2012, p5): 1.5 degrees.** The 86 latch truth table is
+reproduced row for row; the 25 advance angle is reproduced to the published value. The close permissive
+that combines the elements is this tool's own construction from named parts, verified as self
+consistent boolean logic over all 32 inputs, not as a vendor scheme (none was sourced). See
+`sources/SOURCES.md` and `verify/verify.js`.
 
 ## Layout
 
@@ -23,4 +27,7 @@ published worked example and the number matches the book.
 
 ## Build log
 
-_Started as a round out app. Nothing to report yet._
+2026-07-20  Built and verified locally. Source reuses project 04's two traced primaries (the GE 850
+Non-volatile Latch table and the SEL advance angle example) for the same elements, so no new sourcing
+was needed. 31 checks pass; 16 mutants, all killed. Section F refuses to name a factory permissive
+scheme, keeps a stale GE default off screen, and claims no standards conformance. Not yet pushed.

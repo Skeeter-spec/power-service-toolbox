@@ -1,0 +1,75 @@
+# Mutants for 06. Run: ./tools/mutate.sh projects/06-ladder-logic
+#
+# Format:  <target file> | <sed expression> | <description>
+#
+# One mutant per real behaviour the code claims to have. Every one MUST make the suite go red. A
+# survivor is a finding: dead code, a coverage hole, or an EQUIVALENT mutant no input can distinguish.
+#
+# ⚠ RUNNER CONSTRAINT: mutants.txt is parsed with `IFS='|' read`, so A SED EXPRESSION MAY NOT CONTAIN
+# A PIPE. That is why none of the mutants below touch the `trip50 === true || trip51 === true` line
+# directly: instead they rewrite the `!overcurrent` term in the return, which reaches the same
+# behaviour without a `|`. Write && as \&\& and escape a literal * as \*.
+#
+# 06'S MUTANTS COME IN THE SAME THREE FLAVOURS AS 05, AND THE THIRD IS THE POINT.
+#   A. Break the published truth table. GE 850 p4-414 prints the outputs, so these flip a row.
+#   B. Break the permissive logic (drop a term, invert a term, shrink the enumeration).
+#   C. Break the sourced worked example (SEL Thompson p5).
+#   F. 🔴 BREAK NOTHING, AND ONLY MAKE THE TOOL CLAIM MORE THAN ITS SOURCE. Section F's mutants add a
+#      vendor scheme nobody sourced, stop the refusal refusing, deny a published fact, or ship a stale
+#      default. No verdict changes; the tool just overclaims. This is the failure the repo exists for.
+
+# ---------------------------------------------------------------- #
+# A. THE PUBLISHED LATCH TRUTH TABLE. GE Multilin 850, Non-volatile Latch, Reset Dominant, p4-414.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/  if (reset) return false;/  if (reset) return true;/ | reset no longer dominant: On/On and Off/On would read On, but GE 850 p4-414 prints Off for both
+build/engine.js | s/  if (set) return true;/  if (set) return false;/ | a set input no longer latches On: On/Off would read Off, contradicting GE 850 p4-414
+build/engine.js | s/  return prev;/  return false;/ | the held state is lost: Off/Off would read Off even when the prior state was On, so the latch stops latching (GE 850 p4-414)
+
+# ---------------------------------------------------------------- #
+# B. THE CLOSE PERMISSIVE. Self consistent boolean logic over all 32 inputs.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/  const lockoutClear = inp.lockout86 === false;/  const lockoutClear = inp.lockout86 === true;/ | lockout logic inverted: a close would be permitted only while LOCKED OUT, which is the opposite of an 86 interlock
+build/engine.js | s/ \&\& inp.syncOk25 === true \&\& inp.springCharged === true/ \&\& inp.springCharged === true/ | the 25 sync check term dropped, so a close is permitted out of sync and that input stops gating
+build/engine.js | s/ \&\& inp.springCharged === true \&\& !overcurrent;/ \&\& !overcurrent;/ | the spring charged term dropped, so a close is permitted with no stored closing energy and that input stops gating
+build/engine.js | s/ \&\& !overcurrent;/ \&\& inp.trip51 !== true;/ | only 51 blocks now: a 50 instantaneous trip no longer prevents a close, so the 50 input stops gating
+build/engine.js | s/ \&\& !overcurrent;/ \&\& inp.trip50 !== true;/ | only 50 blocks now: a 51 time overcurrent trip no longer prevents a close, so the 51 input stops gating
+build/engine.js | s/function noOvercurrent_andForm(inp) { return (inp.trip50 !== true) \&\& (inp.trip51 !== true); }/function noOvercurrent_andForm(inp) { return (inp.trip50 !== true); }/ | the AND form of De Morgan drops a term, so it disagrees with the OR form and the identity the tool teaches is false
+build/engine.js | s/  for (let m = 0; m < (1 << keys.length); m++) {/  for (let m = 0; m < (1 << 4); m++) {/ | the enumeration covers 16 of 32 input combinations, so half the truth table is never checked
+
+# ---------------------------------------------------------------- #
+# C. THE SOURCED 25 ADVANCE ANGLE. SEL, Thompson 2012, p5.
+# ---------------------------------------------------------------- #
+
+build/engine.js | s/  return slipHz \* 360 \* breakerCloseSeconds;/  return slipHz \* 180 \* breakerCloseSeconds;/ | advance angle halved: the published 0.05 Hz, 5 cycle example would give 0.75 not the stated 1.5 degrees
+build/engine.js | s/  return slipHz \* 360;/  return slipHz \* 361;/ | slip rate wrong: 0.05 Hz would give 18.05 not the published 18 degrees per second
+
+# ---------------------------------------------------------------- #
+# F. 🔴 THE REFUSALS. THESE MUTANTS BREAK NO VERDICT AT ALL.
+#
+# Every check in sections A, B and C still passes under all four. They only make the tool claim
+# something no source publishes. Nothing is BROKEN, so no ordinary test would look.
+# ---------------------------------------------------------------- #
+
+# THE DANGEROUS ONE. A future session reads one vendor's permissive diagram and adds it as fact, in
+# good faith, in a tool that then teaches it. No full close permissive scheme was sourced, so this is
+# an overclaim even when the scheme is real, because THIS repo did not read it.
+build/rungs.js | s/const VENDOR_SCHEMES = {};/const VENDOR_SCHEMES = { "ge-850": { note: "unsourced" } };/ | a factory permissive scheme is shipped that no SOURCES.md row backs, exactly as a well meaning future session would add it
+
+# The same overclaim from the engine: make the refusal stop refusing.
+build/engine.js | s/    throw new Error(/    return null \&\& new Error(/ | factoryPermissive stops throwing and returns a value, so the tool silently names a scheme it never sourced
+
+# THE OPPOSITE ERROR, JUST AS REAL. Overclaiming the GAP: the 86 latch table IS published (section A
+# reproduces it). A refusal that denies it is confidently wrong in the flattering direction.
+build/engine.js | s/latch truth table IS published (GE 850 p4-414)/latch truth table is not published anywhere/ | the refusal denies that the 86 latch is published, overclaiming the gap that section F pins precisely
+
+# A stale relay default shipped as fact. GE 850 v2.0x sync defaults were read on a distributor mirror
+# and are stale revision risk; the build must not present one as a setting.
+build/rungs.js | s/const LATCH_NONVOLATILE = true;/const LATCH_NONVOLATILE = true; const GE_SYNC_DEFAULT = '0.20 Hz default';/ | a stale GE 850 v2.0x default (0.20 Hz) is shipped as an on screen fact, which the mirror provenance forbids
+
+# THE TWO REWORDINGS A SECOND READER SLIPPED PAST THE FIRST GREPS (2026-07-20). These prove the
+# WIDENED §F patterns now catch the exact forms that evaded them: the single-digit "0.2 Hz / 20
+# degrees" default, and the "aligned with" conformance verb the first list missed.
+build/rungs.js | s/window.LADDER_DATA = DATA;/window.LADDER_DATA = DATA; \/* 0.2 Hz slip, 20 degrees GE factory default *\// | the single-digit "0.2 Hz, 20 degrees" stale default, the exact wording that dodged the 0.20-only grep, is now caught
+build/rungs.js | s/module.exports = DATA;/module.exports = DATA; \/* aligned with NFPA 70E lockout practice *\// | an "aligned with NFPA 70E" conformance claim, the exact wording that dodged the first verb list, is now caught
